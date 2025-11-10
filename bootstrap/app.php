@@ -11,7 +11,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Global middleware - akan apply ke semua request
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
+        
         $middleware->alias([
+            'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
+            'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
             'check.role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
     })

@@ -2,22 +2,24 @@
 
 use App\Http\Controllers\Auth\AuthControllers;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Http\Middleware\RedirectIfAuthenticated;
 
 // Root redirect
 Route::get('/', function () {
-    return auth()->check() 
-        ? redirect()->route('dashboard') 
+    return Auth::check()
+        ? redirect()->route('dashboard')
         : redirect()->route('login');
 });
 
-// Auth Routes
 Route::controller(AuthControllers::class)->group(function () {
     Route::middleware('guest')->group(function () {
+        Route::get('register', 'showRegisterForm')->name('register');
         Route::get('register', 'showRegisterForm')->name('register');
         Route::post('register', 'register');
         Route::get('login', 'showLoginForm')->name('login');
         Route::post('login', 'login');
-
         // Google OAuth
         Route::get('auth/google/redirect', 'redirectToGoogle')->name('google.redirect');
         Route::get('auth/google/callback', 'handleGoogleCallback')->name('google.callback');
@@ -47,10 +49,10 @@ Route::controller(AuthControllers::class)->group(function () {
     });
 });
 
-// Dashboard - hanya untuk authenticated users
+// Dashboard - only for authenticated users
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
-        $user = auth()->user();
+        $user = Auth::user();
         return view('dashboard', compact('user'));
     })->name('dashboard');
 });

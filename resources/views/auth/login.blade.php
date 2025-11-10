@@ -206,6 +206,7 @@
                            value="{{ old('email') }}"
                            required
                            autofocus
+                           autocomplete="email"
                            placeholder="Masukkan email"
                            pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
                            title="Hanya alamat email @gmail.com yang diizinkan">
@@ -218,6 +219,7 @@
                            id="password"
                            name="password"
                            required
+                           autocomplete="current-password"
                            placeholder="Masukkan kata sandi">
                 </div>
 
