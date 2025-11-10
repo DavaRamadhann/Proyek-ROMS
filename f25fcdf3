@@ -1,0 +1,13 @@
+[33m30c91afb[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdava[m[33m, [m[1;31morigin/dava[m[33m)[m README.md
+[33m4915e628[m Penambahan proteksi agar data user tidak langsung masuk ke database sebelum verifikasi berhasil ketika daftar
+[33mabb8ed1f[m Penambahan fitur reset kata sandi
+[33ma6c7e665[m Penyesuaian mail.php dan penambahan sandi aplikasi cadangan (dava)
+[33m58923ed1[m Penggabungan dari branch wyandhanudev-penggabungan (Penambahan fitur kode OTP)
+[33m55189fa3[m env
+[33m2d365334[m Merge branch 'dava' of https://github.com/wyandhanupapoy/Proyek3_C2_RepeatOrder_SOMEAH into dava
+[33mdd608459[m delete gitignore
+[33m935ab73e[m delete gitignore
+[33m8d065138[m .gitignore
+[33m0cf497e2[m Penambahan fitur login dengan Google, penghapusan gitignore, dan penghapusan file-file migrations
+[33mf25fcdf3[m Penambahan Middleware
+[33m0adaaa1c[m Auth + DB (.env.example)
