@@ -4,7 +4,7 @@ use App\Http\Controllers\Auth\AuthControllers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use App\Http\Middleware\RedirectIfAuthenticated;
+// use App\Http\Middleware\RedirectIfAuthenticated; // Impor ini ada di file Anda, saya biarkan
 
 // Root redirect
 Route::get('/', function () {
@@ -13,13 +13,19 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
+// --- GRUP AUTH CONTROLLERS (Handle Login, Register, Logout, etc.) ---
 Route::controller(AuthControllers::class)->group(function () {
+    
+    // Rute untuk Tamu (Guest)
     Route::middleware('guest')->group(function () {
-        Route::get('register', 'showRegisterForm')->name('register');
+        // Register
         Route::get('register', 'showRegisterForm')->name('register');
         Route::post('register', 'register');
+        
+        // Login
         Route::get('login', 'showLoginForm')->name('login');
         Route::post('login', 'login');
+        
         // Google OAuth
         Route::get('auth/google/redirect', 'redirectToGoogle')->name('google.redirect');
         Route::get('auth/google/callback', 'handleGoogleCallback')->name('google.callback');
@@ -44,36 +50,61 @@ Route::controller(AuthControllers::class)->group(function () {
         Route::post('verify-reset-code/resend', 'resendResetCode')->name('password.resend');
     });
 
+    // Rute Logout (Hanya untuk yang sudah login)
     Route::middleware('auth')->group(function () {
         Route::post('logout', 'logout')->name('logout');
     });
 });
 
-// Dashboard - only for authenticated users
+
+// --- GRUP UNTUK SEMUA HALAMAN YANG SUDAH LOGIN ---
 Route::middleware(['auth'])->group(function () {
+    
+    // Rute Dashboard
+    // (Saya pakai versi pertama dari kode Anda, yang meneruskan $user)
     Route::get('/dashboard', function () {
         $user = Auth::user();
         return view('dashboard', compact('user'));
     })->name('dashboard');
-});
 
-// Test Supabase Connection (optional - bisa dihapus jika tidak perlu)
-Route::get('/test-supabase', function () {
-    try {
-        $pdo = DB::connection()->getPdo();
-        $dbName = DB::connection()->getDatabaseName();
-        $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+    // ======================================================
+    // BLOK KODE DOMAIN CHAT (DIGABUNGKAN KE SINI)
+    // ======================================================
+    Route::prefix('app')->middleware([
+        'check.role:admin,cs' // Amankan! Hanya Admin & CS
+    ])->group(function () {
         
-        return response()->json([
-            'status' => 'success',
-            'message' => '✅ Koneksi Supabase berhasil!',
-            'database' => $dbName,
-            'tables' => collect($tables)->pluck('table_name'),
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => '❌ Error koneksi: ' . $e->getMessage(),
-        ], 500);
-    }
-});
+        // Muat Rute Domain Chat
+        // Baris inilah yang mendefinisikan 'chat.index'
+        require __DIR__.'/../app/Domains/Chat/routes/web.php';
+
+        // Nanti Muat Rute Domain Customer
+        // require __DIR__.'/../app/Domains/Customer/routes/web.php';
+
+    });
+    // --- AKHIR DARI BLOK KODE BARU ---
+
+    
+    // Test Supabase Connection (opsional)
+    // Saya letakkan di dalam auth group agar terlindungi
+    Route::get('/test-supabase', function () {
+        try {
+            $pdo = DB::connection()->getPdo();
+            $dbName = DB::connection()->getDatabaseName();
+            $tables = DB::select("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'");
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => '✅ Koneksi Supabase berhasil!',
+                'database' => $dbName,
+                'tables' => collect($tables)->pluck('table_name'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => '❌ Error koneksi: ' . $e->getMessage(),
+            ], 500);
+        }
+    });
+
+}); // <-- Ini adalah penutup penting untuk grup Route::middleware(['auth'])
