@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ChatMessage extends Model
 {
+    public $timestamps = false;
+
     protected $table = 'chat_messages';
 
     protected $fillable = [

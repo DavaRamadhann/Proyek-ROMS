@@ -10,7 +10,9 @@ use App\Domains\Customer\Models\Customer;
 use App\Models\User; // Model User dari Auth bawaan Laravel
 
 class ChatRoom extends Model
-{
+{   
+    public $timestamps = false;
+
     protected $table = 'chat_rooms';
 
     protected $fillable = [

@@ -5,59 +5,78 @@ namespace App\Domains\Chat\Repositories;
 
 use App\Domains\Chat\Interfaces\ChatRoomRepositoryInterface;
 use App\Domains\Chat\Models\ChatRoom;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB; // <-- Pastikan ini ada
+// Hapus 'use App\Domains\Chat\Services\ChatService;'
 
 class ChatRoomRepository implements ChatRoomRepositoryInterface
 {
-    public function findActiveRoomByCustomer(int $customerId): ?ChatRoom
+    // Hapus __construct() yang memanggil ChatService
+
+    /**
+     * Cari room, atau buat baru.
+     * Logika assign CS dipindahkan ke ChatService.
+     */
+    public function findOrCreateRoomForCustomer(int $customerId): ChatRoom
     {
-        return ChatRoom::where('customer_id', $customerId)
-                       ->whereIn('status', ['new', 'open'])
-                       ->first();
+        return ChatRoom::firstOrCreate(
+            ['customer_id' => $customerId],
+            ['status' => 'new']
+        );
+        // Kita tidak assign CS di sini lagi
     }
 
-    public function createRoom(array $data): ChatRoom
+    /**
+     * Ambil semua room yang di-assign ke CS
+     */
+    public function getRoomsForCs(int $csUserId): \Illuminate\Database\Eloquent\Collection
     {
-        return ChatRoom::create($data);
-    }
-
-    public function getRoomsForCs(int $csId): Collection
-    {
-        // Kita eager load relasi 'customer' agar di view inbox
-        // kita bisa langsung tampilkan nama pelanggannya.
         return ChatRoom::with('customer')
-                        ->where('cs_user_id', $csId)
-                        ->whereIn('status', ['new', 'open'])
-                        ->latest('id')
-                        ->get();
+                       ->where('cs_user_id', $csUserId)
+                       ->orderBy('status', 'desc')
+                       ->orderBy('id', 'desc')
+                       ->get();
     }
 
     public function updateRoomStatus(int $roomId, string $status): bool
     {
-        return ChatRoom::where('id', $roomId)
-                       ->update(['status' => $status]);
+        $room = $this->findRoomById($roomId);
+        if ($room) {
+            $room->status = $status;
+            return $room->save();
+        }
+        return false;
     }
 
     public function assignCsToRoom(int $roomId, int $csId): bool
     {
-        return ChatRoom::where('id', $roomId)
-                       ->update([
-                           'cs_user_id' => $csId,
-                           'status' => 'open' // Otomatis 'open' saat di-assign
-                       ]);
+        $room = $this->findRoomById($roomId);
+        if ($room) {
+            $room->cs_user_id = $csId;
+            return $room->save();
+        }
+        return false;
     }
 
-    // Method tambahan yang kita asumsikan ada di ChatController
     public function findRoomById(int $roomId): ?ChatRoom
     {
         return ChatRoom::find($roomId);
     }
 
-    // Method tambahan yang kita asumsikan ada di ChatService
-    public function findActiveRoomById(int $roomId): ?ChatRoom
+    public function findRoomByCustomerPhone(string $phone): ?ChatRoom
     {
-         return ChatRoom::where('id', $roomId)
+        return ChatRoom::whereHas('customer', function ($query) use ($phone) {
+            $query->where('phone', $phone);
+        })->first();
+    }
+
+    // Implementasi method yang hilang (sesuai kontrak)
+    public function createRoom(array $data): ChatRoom
+    {
+        return ChatRoom::create($data);
+    }
+
+    public function findActiveRoomByCustomer(int $customerId): ?ChatRoom
+    {
+        return ChatRoom::where('customer_id', $customerId)
                        ->whereIn('status', ['new', 'open'])
                        ->first();
     }

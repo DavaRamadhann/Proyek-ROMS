@@ -36,7 +36,7 @@
             <div class="card-body">
                 <h5 class="card-title">💬 Chat Customer Service</h5>
                 <p class="card-text">Buka inbox untuk melihat dan membalas semua pesan pelanggan.</p>
-                <a href="{{ route('chat.index') }}" class="btn btn-light stretched-link">Buka Inbox</a>
+                <a href="{{ route('chat.whatsapp') }}" class="btn btn-light stretched-link">Buka Inbox</a>
             </div>
         </div>
     </div>
