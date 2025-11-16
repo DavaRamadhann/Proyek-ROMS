@@ -43,7 +43,7 @@ class WhatsAppConnectionController extends Controller
         return Http::withHeaders([
             'x-api-key' => $this->waServiceApiKey,
             'Accept' => 'application/json',
-        ])->timeout(15); // Timeout 15 detik
+        ])->timeout(90); // Timeout 15 detik
     }
 
     /**
@@ -53,23 +53,20 @@ class WhatsAppConnectionController extends Controller
     public function getStatus(): JsonResponse
     {
         try {
-            // Panggil endpoint /accounts di whatsapp-service
             $response = $this->waClient()->get("{$this->waServiceUrl}/accounts");
 
             if ($response->failed()) {
                 return response()->json(['status' => 'SERVICE_DOWN', 'message' => 'WA Service tidak merespon.'], 500);
             }
 
-            // Endpoint /accounts mengembalikan array
-            // Kita cari data untuk clientId 'official_business'
-            $account = collect($response->json())->firstWhere('clientId', $this->clientId);
+            // [BUG DI SINI] $response->json() adalah { data: [...] }
+            $account = collect($response->json()['data']) // <-- TAMBAHKAN ['data']
+                ->firstWhere('clientId', $this->clientId);
 
             if (!$account) {
-                // Jika belum ada, anggap sebagai DISCONNECTED
                 return response()->json(['status' => 'DISCONNECTED', 'message' => 'Client ID belum terdaftar di service.']);
             }
 
-            // Kembalikan status yang ditemukan (mis: 'READY', 'QR', 'DISCONNECTED')
             return response()->json([
                 'status' => $account['status'] ?? 'UNKNOWN',
             ]);
@@ -88,11 +85,9 @@ class WhatsAppConnectionController extends Controller
     {
         try {
             $url = "{$this->waServiceUrl}/accounts/{$this->clientId}/qr";
-            // Panggil endpoint /qr
             $response = $this->waClient()->get($url);
 
             if ($response->status() === 404) {
-                // 404 berarti tidak ada QR (mungkin sudah ready)
                 return response()->json(['error' => 'Tidak ada QR Code aktif.'], 404);
             }
 
@@ -100,8 +95,9 @@ class WhatsAppConnectionController extends Controller
                 return response()->json(['error' => 'Gagal mengambil QR code.'], $response->status());
             }
 
-            // Sukses, kirim data { clientId, qr } ke frontend
-            return response()->json($response->json());
+            // [BUG DI SINI] $response->json() adalah { data: { qr: ... } }
+            // Kirim hanya data di dalamnya, bukan seluruh bungkusnya.
+            return response()->json($response->json()['data']); // <-- TAMBAHKAN ['data']
 
         } catch (\Exception $e) {
             Log::error('Gagal mengambil QR WA: ' . $e->getMessage());

@@ -4,7 +4,7 @@
 
 @push('scripts')
     {{-- Kita butuh library untuk generate QR code dari string --}}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRggUTvfOFMhDMhkQRScsDQGSSUbpNAVkvLQJMQ6NItcaGDlGOLCqOHqZGmcHN+GjQ0EZZfLMf/Ggtr0j2A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="{{ asset('js/qrcode.min.js') }}"></script>
 @endpush
 
 @section('content')
