@@ -8,13 +8,13 @@ use Illuminate\Support\Collection;
 
 interface ChatMessageRepositoryInterface
 {
-    /**
-     * Mengambil semua pesan untuk satu chat room.
-     */
     public function getMessagesForRoom(int $roomId): Collection;
 
-    /**
-     * Menyimpan pesan baru ke database.
-     */
     public function createMessage(array $data): ChatMessage;
+
+    /**
+     * [TAMBAHAN]
+     * Update status pesan (mis: 'pending', 'sent', 'failed', 'read').
+     */
+    public function updateMessageStatus(int $messageId, string $status): bool;
 }

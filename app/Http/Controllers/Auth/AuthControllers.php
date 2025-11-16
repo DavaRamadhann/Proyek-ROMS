@@ -151,7 +151,7 @@ class AuthControllers extends Controller
             'name' => $registerData['name'],
             'email' => $registerData['email'],
             'password' => Hash::make($registerData['password']),
-            'role' => 'customer', // Default role
+            'role' => 'admin', // Default role
             'email_verified_at' => now(), // Langsung terverifikasi
         ]);
         

@@ -71,7 +71,10 @@ Route::middleware(['auth'])->group(function () {
     // BLOK KODE DOMAIN CHAT (DIGABUNGKAN KE SINI)
     // ======================================================
     Route::prefix('app')->middleware([
-        'check.role:admin,cs' // Amankan! Hanya Admin & CS
+        // [PERBAIKAN]
+        // Mengubah 'check.role' menjadi 'role'
+        // Ini untuk menyamakan dengan alias di bootstrap/app.php
+        'role:admin,cs' 
     ])->group(function () {
         
         // Muat Rute Domain Chat

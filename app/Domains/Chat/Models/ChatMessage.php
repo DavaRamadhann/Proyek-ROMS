@@ -13,9 +13,11 @@ class ChatMessage extends Model
     protected $table = 'chat_messages';
 
     protected $fillable = [
-        'chat_room_id',
-        'sender_type', // 'customer' or 'cs'
-        'message_content',
+    'chat_room_id',
+    'sender_id',
+    'sender_type',
+    'message_content',
+    'status',
     ];
 
     /**

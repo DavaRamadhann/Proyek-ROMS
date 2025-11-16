@@ -208,8 +208,8 @@
                            autofocus
                            autocomplete="email"
                            placeholder="Masukkan email"
-                           pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
-                           title="Hanya alamat email @gmail.com yang diizinkan">
+                           pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+                           title="Hanya alamat email yang valid yang diizinkan">
                 </div>
 
                 <div class="mb-3">
@@ -234,9 +234,9 @@
                 <script>
                 document.getElementById('email').addEventListener('input', function () {
                     const emailField = this;
-                    const pattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+                    const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
                     if (!pattern.test(emailField.value) && emailField.value !== '') {
-                        emailField.setCustomValidity("Hanya alamat email dengan domain @gmail.com yang diizinkan.");
+                        emailField.setCustomValidity("Hanya alamat email yang valid yang diizinkan.");
                     } else {
                         emailField.setCustomValidity("");
                     }

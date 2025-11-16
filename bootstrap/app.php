@@ -19,7 +19,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'guest' => \Illuminate\Auth\Middleware\RedirectIfAuthenticated::class,
-            'check.role' => \App\Http\Middleware\EnsureUserHasRole::class,
+            
+            // [PERBAIKAN]
+            // Mengubah 'check.role' menjadi 'role' agar sesuai dengan
+            // yang dipanggil di file route (mis: middleware('role:admin'))
+            // Ini akan memperbaiki error "Target class [role] does not exist."
+            'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

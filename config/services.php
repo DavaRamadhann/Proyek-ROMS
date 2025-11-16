@@ -40,4 +40,9 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
+
+    'whatsapp' => [
+        'url' => env('WA_SERVICE_URL'),
+        'api_key' => env('WA_SERVICE_API_KEY'),
+    ],
 ];

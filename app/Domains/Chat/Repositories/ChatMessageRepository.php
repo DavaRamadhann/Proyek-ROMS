@@ -18,6 +18,27 @@ class ChatMessageRepository implements ChatMessageRepositoryInterface
 
     public function createMessage(array $data): ChatMessage
     {
+        // [PERBAIKAN]
+        // Tambahkan status default 'pending' jika pesan baru dibuat.
+        // Ini akan di-update oleh ChatService menjadi 'sent' atau 'failed'.
+        if (!isset($data['status'])) {
+            $data['status'] = 'pending';
+        }
+        
         return ChatMessage::create($data);
+    }
+
+    /**
+     * [IMPLEMENTASI BARU]
+     * Implementasi dari method di Interface.
+     */
+    public function updateMessageStatus(int $messageId, string $status): bool
+    {
+        // Temukan pesan berdasarkan ID dan update statusnya.
+        // Menggunakan update massal lebih efisien.
+        $updatedCount = ChatMessage::where('id', $messageId)
+                                   ->update(['status' => $status]);
+        
+        return $updatedCount > 0;
     }
 }
