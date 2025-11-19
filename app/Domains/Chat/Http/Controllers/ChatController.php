@@ -163,35 +163,36 @@ class ChatController extends Controller
      * [BARU] Menerima kiriman balasan dari CS (via AJAX).
      * Berbeda dari storeMessage, ini mengembalikan JSON, bukan redirect.
      */
+    /**
+     * [AJAX] Mengirim pesan dari CS ke Customer via WhatsApp Service.
+     */
     public function storeAjaxMessage(Request $request, int $roomId)
     {
+        // Validasi input
         $request->validate(['message_body' => 'required|string']);
         
         $csUser = Auth::user();
         $messageBody = $request->input('message_body');
 
         try {
-            // Panggil "otak" kita untuk mengirim pesan keluar
-            // $this->chatService->sendOutboundMessage($csUser, $roomId, $messageBody);
+            // 1. Panggil ChatService untuk kirim ke API WA & Simpan ke DB
+            // Pastikan method sendOutboundMessage di ChatService sudah benar (seperti di diskusi sebelumnya)
+            $message = $this->chatService->sendOutboundMessage($csUser, $roomId, $messageBody);
             
-            // Untuk testing UI, kita simulasi pesan baru
-            // Hapus/ganti ini dengan $this->chatService->... yang asli
-            $newMessage = $this->chatMessageRepo->createMessage(
-                $roomId,
-                $csUser->id,
-                'user', // Tipe pengirim adalah 'user' (CS)
-                $messageBody
-            );
-
+            // 2. Kembalikan sukses beserta data pesan baru (untuk di-render JS)
             return response()->json([
                 'success' => true,
-                'message' => $newMessage // Kirim balik pesan yg baru dibuat
+                'message' => $message 
             ]);
 
         } catch (\Exception $e) {
+            // Log error agar bisa dicek di storage/logs/laravel.log
+            \Illuminate\Support\Facades\Log::error('Gagal kirim pesan Ajax: ' . $e->getMessage());
+
+            // Kembalikan error 500 ke JS
             return response()->json([
-                'success' => false,
-                'error' => 'Gagal mengirim pesan: ' . $e->getMessage()
+                'success' => false, 
+                'error' => 'Gagal memproses: ' . $e->getMessage()
             ], 500);
         }
     }

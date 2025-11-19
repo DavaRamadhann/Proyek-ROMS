@@ -3,6 +3,7 @@
 namespace App\Domains\Chat\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Domains\Chat\Models\ChatRoom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -127,5 +128,18 @@ class WhatsAppConnectionController extends Controller
             Log::error('Gagal reconnect WA: ' . $e->getMessage());
             return response()->json(['status' => 'ERROR', 'message' => $e->getMessage()], 500);
         }
+    }
+
+    public function index()
+    {
+        // Ambil daftar chat room yang diurutkan dari yang terbaru
+        $rooms = ChatRoom::with(['customer', 'messages' => function($q) {
+            $q->latest()->limit(1); // Ambil pesan terakhir untuk preview
+        }])
+        ->orderBy('updated_at', 'desc')
+        ->get();
+
+        // Kirim data $rooms ke view
+        return view('pages.chat.whatsapp', compact('rooms'));
     }
 }

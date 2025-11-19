@@ -1,224 +1,524 @@
 @extends('layouts.app')
 
-@section('title', 'Manajemen Koneksi WhatsApp')
+@section('title', 'WhatsApp Chat')
+
+@push('styles')
+<style>
+    /* --- RESET LAYOUT KHUSUS HALAMAN CHAT --- */
+    /* Sembunyikan scrollbar window utama agar tidak ada double scroll */
+    body { overflow: hidden; } 
+
+    /* Wrapper Utama: Mengapung di atas layout dashboard bawaan */
+    .wa-fullscreen-wrapper {
+        position: fixed;
+        top: 60px; /* Sesuaikan dengan tinggi Navbar kamu */
+        left: 0;
+        width: 100vw;
+        height: calc(100vh - 60px);
+        background-color: #d1d7db;
+        z-index: 9999; /* Pastikan di atas sidebar/footer dashboard */
+        display: flex;
+        justify-content: center;
+        padding: 0; /* Reset padding */
+    }
+
+    /* Jika sidebar dashboard kamu lebar, mungkin perlu left: 250px. 
+       Tapi untuk amannya kita timpa saja (full screen total) */
+
+    /* Container Chat ala WA Web */
+    .wa-container {
+        width: 100%;
+        height: 100%;
+        max-width: 1920px; /* Full width di layar besar */
+        background: #fff;
+        display: flex;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    /* --- SIDEBAR KIRI --- */
+    .wa-sidebar {
+        width: 350px;
+        flex-shrink: 0;
+        background: #fff;
+        border-right: 1px solid #e9edef;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wa-header-left {
+        height: 60px;
+        background: #f0f2f5;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #d1d7db;
+    }
+
+    .wa-chat-list {
+        flex: 1;
+        overflow-y: auto;
+        background: #fff;
+    }
+
+    /* Item Chat */
+    .chat-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f2f5;
+        transition: background-color 0.2s;
+    }
+    .chat-item:hover { background-color: #f5f6f6; }
+    .chat-item.active { background-color: #f0f2f5; }
+
+    .avatar-circle {
+        width: 45px; height: 45px;
+        border-radius: 50%;
+        background: #dfe5e7;
+        color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 18px;
+        margin-right: 15px;
+    }
+
+    .chat-info { flex: 1; min-width: 0; }
+    .chat-name { font-size: 16px; color: #111b21; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-preview { font-size: 13px; color: #667781; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-meta { font-size: 11px; color: #8696a0; margin-left: 10px; }
+
+    /* --- AREA CHAT KANAN --- */
+    .wa-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #efe7dd; /* Warna dasar WA */
+        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Doodle WA */
+        background-repeat: repeat; 
+        position: relative;
+    }
+
+    .wa-header-main {
+        height: 60px;
+        background: #f0f2f5;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #d1d7db;
+        z-index: 10;
+    }
+
+    .wa-messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 5%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Bubble Chat */
+    .msg-row { display: flex; margin-bottom: 8px; }
+    .msg-row.outgoing { justify-content: flex-end; }
+    .msg-row.incoming { justify-content: flex-start; }
+
+    .msg-bubble {
+        max-width: 65%;
+        padding: 6px 10px 8px 10px;
+        border-radius: 8px;
+        position: relative;
+        font-size: 14px;
+        line-height: 19px;
+        box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    }
+
+    .msg-bubble.in { background: #fff; border-top-left-radius: 0; }
+    .msg-bubble.out { background: #d9fdd3; border-top-right-radius: 0; }
+
+    .msg-time {
+        float: right; margin-left: 10px; margin-top: 4px;
+        font-size: 10px; color: #667781; display: flex; align-items: center;
+    }
+
+    /* Footer Input */
+    .wa-footer {
+        min-height: 62px;
+        background: #f0f2f5;
+        padding: 10px 16px;
+        display: flex; align-items: center; gap: 10px;
+        z-index: 10;
+    }
+    .wa-input {
+        flex: 1;
+        border: none; border-radius: 8px;
+        padding: 10px 12px; font-size: 15px;
+        outline: none;
+    }
+
+    /* Utils */
+    .d-none { display: none !important; }
+    .placeholder-screen {
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        height: 100%; text-align: center; color: #41525d;
+        background: #f0f2f5; border-bottom: 6px solid #25d366;
+    }
+</style>
+@endpush
 
 @push('scripts')
-    {{-- Kita butuh library untuk generate QR code dari string --}}
-    <script src="{{ asset('js/qrcode.min.js') }}"></script>
+    <script src="{{ asset('assets/js/qrcode.min.js') }}"></script>
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Manajemen Koneksi WhatsApp</h5>
-                    <p class="mb-0 text-muted">Hubungkan nomor WhatsApp bisnis resmi Anda.</p>
+
+{{-- WRAPPER UTAMA (FULL SCREEN) --}}
+<div class="wa-fullscreen-wrapper">
+    
+    {{-- 1. PANEL KONEKSI (Jika WA belum Ready) --}}
+    <div id="connection-panel" class="card shadow-lg border-0 p-4 align-self-center d-none" style="width: 400px;">
+        <div class="text-center">
+            <h4 class="mb-3">Koneksi WhatsApp</h4>
+            
+            <div id="qr-wrapper" class="d-none mb-3">
+                <div id="qrcode" class="d-flex justify-content-center"></div>
+                <small class="text-muted mt-2 d-block">Scan QR di Menu > Perangkat Tertaut</small>
+            </div>
+
+            <div id="loading-wrapper" class="my-3">
+                <div class="spinner-border text-success mb-2" role="status"></div>
+                <p class="text-muted small" id="loading-text">Memeriksa status...</p>
+            </div>
+
+            <span id="status-badge" class="badge bg-secondary">...</span>
+        </div>
+    </div>
+
+    {{-- 2. INTERFACE CHAT (Jika WA Ready) --}}
+    <div id="chat-interface" class="wa-container d-none">
+        
+        {{-- SIDEBAR --}}
+        <div class="wa-sidebar">
+            <div class="wa-header-left">
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-secondary me-2" style="width:40px;height:40px;font-size:14px;">CS</div>
+                    <span class="fw-bold">Chat</span>
                 </div>
-                
-                <div class="card-body text-center p-4">
-                    <div class="mb-3">
-                        <span class="badge fs-6" id="status-badge">Memeriksa...</span>
-                    </div>
+                <div>
+                    <i class="bi bi-three-dots-vertical text-secondary"></i>
+                </div>
+            </div>
 
-                    <div id="qr-container" class="d-none">
-                        <p class="text-muted">Pindai QR code ini dengan aplikasi WhatsApp di HP Anda.</p>
-                        <div id="qrcode" class="d-flex justify-content-center mb-3"></div>
-                        <small class="text-danger">Jangan refresh halaman ini saat memindai.</small>
-                    </div>
-
-                    <div id="message-container">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+            {{-- LIST ROOM --}}
+            <div class="wa-chat-list">
+                @forelse ($rooms as $room)
+                    <div class="chat-item" onclick="openChat({{ $room->id }}, this)">
+                        <div class="avatar-circle" style="background-color: {{ $loop->iteration % 2 == 0 ? '#009688' : '#3f51b5' }}">
+                            {{ strtoupper(substr($room->customer->name ?? 'G', 0, 1)) }}
                         </div>
-                        <p id="message-text" class="mt-2">Sedang mengambil status koneksi...</p>
+                        <div class="chat-info">
+                            <div class="d-flex justify-content-between">
+                                <div class="chat-name fw-bold">{{ $room->customer->name ?? 'Guest' }}</div>
+                                <div class="chat-meta">{{ $room->updated_at->format('H:i') }}</div>
+                            </div>
+                            <div class="chat-preview">
+                                @if($room->messages->last())
+                                    @if($room->messages->last()->sender_type == 'user')
+                                        <i class="bi bi-check2 text-secondary"></i>
+                                    @endif
+                                    {{ Str::limit($room->messages->last()->message_content, 30) }}
+                                @else
+                                    <span class="fst-italic text-muted">Belum ada pesan</span>
+                                @endif
+                            </div>
+                        </div>
                     </div>
+                @empty
+                    <div class="p-4 text-center text-muted small">Belum ada chat.</div>
+                @endforelse
+            </div>
+        </div>
 
-                    <button id="reconnect-button" class="btn btn-primary mt-3 d-none">
-                        <i class="bi bi-arrow-clockwise"></i> Hubungkan Ulang (Paksa Ambil QR)
-                    </button>
+        {{-- MAIN AREA --}}
+        <div class="wa-main">
+            {{-- Placeholder (Belum pilih chat) --}}
+            <div id="view-placeholder" class="placeholder-screen">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/150px-WhatsApp.svg.png" width="80" class="mb-4 opacity-50">
+                <h3>WhatsApp for ROMS</h3>
+                <p>Kirim dan terima pesan tanpa perlu buka HP.<br>Pilih chat di sebelah kiri untuk mulai.</p>
+            </div>
+
+            {{-- Chat View --}}
+            <div id="view-chat" class="d-none flex-column h-100">
+                {{-- Header --}}
+                <div class="wa-header-main">
+                    <div class="avatar-circle me-3" id="chat-avatar" style="width:40px;height:40px;font-size:16px;">U</div>
+                    <div class="d-flex flex-column">
+                        <span class="fw-bold" id="chat-name">Nama User</span>
+                        <small class="text-muted" id="chat-phone">+62...</small>
+                    </div>
+                </div>
+
+                {{-- Bubble Messages --}}
+                <div class="wa-messages-container" id="messages-box">
+                    {{-- Pesan akan di-inject via JS --}}
+                </div>
+
+                {{-- Input --}}
+                <div class="wa-footer">
+                    <i class="bi bi-emoji-smile fs-4 text-secondary" style="cursor:pointer"></i>
+                    <i class="bi bi-paperclip fs-4 text-secondary mx-2" style="cursor:pointer"></i>
+                    
+                    <form id="form-send" class="d-flex flex-grow-1" onsubmit="sendMessage(event)">
+                        <input type="hidden" id="room-id-active">
+                        <input type="text" id="input-message" class="wa-input" placeholder="Ketik pesan" autocomplete="off">
+                        <button type="submit" class="btn p-0 ms-3 border-0 bg-transparent">
+                            <i class="bi bi-send-fill fs-4 text-secondary"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
+{{-- SCRIPT LOGIKA --}}
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Ambil elemen UI
-        const statusBadge = document.getElementById('status-badge');
-        const qrContainer = document.getElementById('qr-container');
-        const qrCodeEl = document.getElementById('qrcode');
-        const messageContainer = document.getElementById('message-container');
-        const messageText = document.getElementById('message-text');
-        const reconnectButton = document.getElementById('reconnect-button');
+    // --- KONFIGURASI URL (PENTING: Generate pakai Blade biar ga 404) ---
+    const URLS = {
+        status: "{{ route('admin.whatsapp.api.status') }}",
+        qr: "{{ route('admin.whatsapp.api.qr') }}",
+        reconnect: "{{ route('admin.whatsapp.api.reconnect') }}",
+        // Kita buat template URL untuk chat, nanti :id diganti via JS
+        getChat: "{{ url('/chat/room/:id/data') }}", 
+        sendChat: "{{ url('/chat/room/:id/send-ajax') }}"
+    };
 
-        // Ambil URL API dari route yang sudah kita buat di web.php
-        const API_URL = {
-            status: '{{ route('admin.whatsapp.api.status') }}',
-            qr: '{{ route('admin.whatsapp.api.qr') }}',
-            reconnect: '{{ route('admin.whatsapp.api.reconnect') }}'
-        };
+    const CSRF_TOKEN = "{{ csrf_token() }}";
+    
+    let currentStatus = 'INIT';
+    let activeRoomId = null;
+    let pollingChatInterval = null;
+    let qrCodeObj = null;
 
-        const CSRF_TOKEN = '{{ csrf_token() }}';
-        let qrCodeInstance = null; // Untuk menyimpan instance QR
-        let statusInterval; // Polling untuk status
-        let qrInterval; // Polling untuk QR
-
-        /**
-         * Menghentikan semua interval polling
-         */
-        function stopAllIntervals() {
-            clearInterval(statusInterval);
-            clearInterval(qrInterval);
-        }
-
-        /**
-         * [MAIN FUNCTION] Memeriksa status koneksi ke whatsapp-service
-         */
-        async function checkStatus() {
-            try {
-                const response = await fetch(API_URL.status);
-                if (!response.ok) {
-                    updateUI('ERROR', { message: 'Gagal menghubungi server. Coba lagi.' });
-                    return;
-                }
-                const data = await response.json();
-                updateUI(data.status, data);
-            } catch (error) {
-                console.error('Error checkStatus:', error);
-                updateUI('ERROR', { message: 'Koneksi ke ROMS server gagal.' });
-            }
-        }
-
-        /**
-         * [ACTION] Meminta QR code baru secara paksa
-         */
-        async function requestReconnect() {
-            stopAllIntervals();
-            updateUI('LOADING', { message: 'Meminta QR code baru...' });
-            
-            try {
-                const response = await fetch(API_URL.reconnect, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': CSRF_TOKEN }
-                });
-
-                if (!response.ok) {
-                    updateUI('ERROR', { message: 'Gagal meminta reconnect. Periksa service WA.' });
-                    return;
-                }
-                
-                // Setelah berhasil request, service akan masuk ke status 'QR'
-                // Kita langsung panggil checkStatus untuk konfirmasi
-                checkStatus();
-
-            } catch (error) {
-                console.error('Error requestReconnect:', error);
-                updateUI('ERROR', { message: 'Gagal mengirim permintaan reconnect.' });
-            }
-        }
-
-        /**
-         * [HELPER] Mengambil dan menampilkan QR code
-         */
-        async function getQrCode() {
-            try {
-                const response = await fetch(API_URL.qr);
-                if (response.status === 404) {
-                    // Ini berarti QR sudah tidak ada, kemungkinan sudah 'READY'
-                    checkStatus(); // Cek status lagi
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                // Render QR code
-                if (qrCodeInstance) {
-                    qrCodeInstance.clear(); // Hapus QR lama
-                    qrCodeInstance.makeCode(data.qr); // Buat yang baru
-                } else {
-                    qrCodeInstance = new QRCode(qrCodeEl, {
-                        text: data.qr,
-                        width: 256,
-                        height: 256,
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Error getQrCode:', error);
-                // Jika gagal ambil QR, cek status lagi
-                checkStatus();
-            }
-        }
-
-        /**
-         * [UI LOGIC] Mengubah tampilan berdasarkan status
-         */
-        function updateUI(status, data = {}) {
-            stopAllIntervals(); // Hentikan polling lama sebelum set yang baru
-            
-            // Sembunyikan semua elemen dinamis
-            qrContainer.classList.add('d-none');
-            messageContainer.classList.add('d-none');
-            reconnectButton.classList.add('d-none');
-
-            switch (status) {
-                case 'READY':
-                    statusBadge.className = 'badge fs-6 bg-success';
-                    statusBadge.textContent = 'TERHUBUNG';
-                    messageContainer.classList.remove('d-none');
-                    messageText.textContent = 'Koneksi WhatsApp Aktif. Sistem siap melayani chat.';
-                    reconnectButton.classList.remove('d-none'); // Tetap tampilkan tombol reconnect
-                    break;
-                
-                case 'QR':
-                    statusBadge.className = 'badge fs-6 bg-warning text-dark';
-                    statusBadge.textContent = 'MENUNGGU PINDAI QR';
-                    qrContainer.classList.remove('d-none');
-                    reconnectButton.classList.remove('d-none');
-                    
-                    // Ambil QR code pertama kali
-                    getQrCode();
-                    
-                    // Polling QR setiap 10 detik (QR code biasanya refresh)
-                    qrInterval = setInterval(getQrCode, 10000);
-                    // Polling status setiap 2 detik (untuk cek kapan jadi 'READY')
-                    statusInterval = setInterval(checkStatus, 2000);
-                    break;
-
-                case 'DISCONNECTED':
-                case 'AUTH_FAILURE':
-                case 'SERVICE_DOWN':
-                case 'UNKNOWN':
-                    statusBadge.className = 'badge fs-6 bg-danger';
-                    statusBadge.textContent = 'TERPUTUS';
-                    messageContainer.classList.remove('d-none');
-                    messageText.textContent = 'Koneksi WhatsApp terputus. Klik tombol di bawah untuk menghubungkan.';
-                    reconnectButton.classList.remove('d-none');
-                    break;
-                
-                case 'LOADING':
-                    statusBadge.className = 'badge fs-6 bg-secondary';
-                    statusBadge.textContent = 'MEMPROSES...';
-                    messageContainer.classList.remove('d-none');
-                    messageText.textContent = data.message || 'Sedang memuat...';
-                    break;
-
-                default: // Termasuk ERROR
-                    statusBadge.className = 'badge fs-6 bg-danger';
-                    statusBadge.textContent = 'ERROR';
-                    messageContainer.classList.remove('d-none');
-                    messageText.textContent = data.message || 'Terjadi kesalahan tidak diketahui.';
-                    reconnectButton.classList.remove('d-none');
-            }
-        }
-
-        // --- Inisialisasi ---
-        reconnectButton.addEventListener('click', requestReconnect);
-        checkStatus(); // Mulai pemeriksaan saat halaman dimuat
+    // --- 1. LOGIKA KONEKSI (WAJIB JALAN DULUAN) ---
+    document.addEventListener('DOMContentLoaded', () => {
+        checkConnection();
+        // Cek status berkala tiap 5 detik
+        setInterval(checkConnection, 5000); 
     });
+
+    async function checkConnection() {
+        if (currentStatus === 'READY' && !activeRoomId) return; // Hemat request jika sudah ready dan belum buka chat
+
+        try {
+            const res = await fetch(URLS.status);
+            const data = await res.json();
+            updateUI(data.status);
+        } catch (e) {
+            console.error("Gagal cek status:", e);
+        }
+    }
+
+    function updateUI(status) {
+        currentStatus = status;
+        const panel = document.getElementById('connection-panel');
+        const chatUI = document.getElementById('chat-interface');
+        const badge = document.getElementById('status-badge');
+        const qrWrap = document.getElementById('qr-wrapper');
+        const loadWrap = document.getElementById('loading-wrapper');
+        const loadText = document.getElementById('loading-text');
+
+        if (status === 'READY') {
+            panel.classList.add('d-none');
+            chatUI.classList.remove('d-none');
+        } else {
+            panel.classList.remove('d-none');
+            chatUI.classList.add('d-none');
+        }
+
+        // Reset
+        qrWrap.classList.add('d-none');
+        loadWrap.classList.add('d-none');
+
+        if (status === 'QR') {
+            badge.textContent = 'SCAN QR'; badge.className = 'badge bg-warning text-dark';
+            qrWrap.classList.remove('d-none');
+            fetchQR();
+        } else if (['AUTHENTICATED', 'INITIALIZING'].includes(status)) {
+            badge.textContent = 'CONNECTING...'; badge.className = 'badge bg-info';
+            loadWrap.classList.remove('d-none');
+            loadText.textContent = 'Sinkronisasi WhatsApp...';
+        } else if (['DISCONNECTED', 'UNKNOWN'].includes(status)) {
+            badge.textContent = 'TERPUTUS'; badge.className = 'badge bg-danger';
+            loadWrap.classList.remove('d-none');
+            loadText.textContent = 'Koneksi terputus. Menghubungkan ulang...';
+            // Auto reconnect
+            fetch(URLS.reconnect, { method: 'POST', headers: {'X-CSRF-TOKEN': CSRF_TOKEN} });
+        }
+    }
+
+    async function fetchQR() {
+        if (currentStatus !== 'QR') return;
+        try {
+            const res = await fetch(URLS.qr);
+            if (res.status === 404) { checkConnection(); return; }
+            const data = await res.json();
+            
+            const el = document.getElementById('qrcode');
+            el.innerHTML = ''; // Clear lama
+            new QRCode(el, { text: data.qr, width: 200, height: 200 });
+        } catch (e) { console.error(e); }
+    }
+
+
+    // --- 2. LOGIKA CHAT (KIRIM & TERIMA) ---
+
+    async function openChat(roomId, el) {
+        // Highlight sidebar
+        document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+        el.classList.add('active');
+
+        activeRoomId = roomId;
+        document.getElementById('room-id-active').value = roomId;
+
+        // Tampilkan area chat
+        document.getElementById('view-placeholder').classList.add('d-none');
+        document.getElementById('view-chat').classList.remove('d-none');
+        document.getElementById('view-chat').classList.add('d-flex');
+
+        // Reset Chat Area
+        document.getElementById('messages-box').innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-secondary spinner-border-sm"></div></div>';
+
+        // Ambil Data Awal
+        await fetchMessages(roomId);
+
+        // Set Nama & Avatar di Header Chat
+        const name = el.querySelector('.chat-name').textContent;
+        document.getElementById('chat-name').textContent = name;
+        document.getElementById('chat-avatar').textContent = name.charAt(0);
+        document.getElementById('chat-avatar').style.backgroundColor = el.querySelector('.avatar-circle').style.backgroundColor;
+
+        // Mulai Polling Pesan (Tiap 2 detik)
+        if (pollingChatInterval) clearInterval(pollingChatInterval);
+        pollingChatInterval = setInterval(() => fetchMessages(roomId), 2000);
+    }
+
+    async function fetchMessages(roomId) {
+        if (activeRoomId != roomId) return; // Cegah race condition
+
+        try {
+            // Replace placeholder :id dengan ID asli
+            const url = URLS.getChat.replace(':id', roomId);
+            const res = await fetch(url);
+            
+            if (!res.ok) throw new Error("Gagal load chat");
+            
+            const data = await res.json();
+            document.getElementById('chat-phone').textContent = data.room.customer.phone; // Update nomor HP
+
+            renderMessages(data.messages);
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderMessages(messages) {
+        const container = document.getElementById('messages-box');
+        
+        // Cek apakah user sedang scroll di atas (biar ga loncat kalau lagi baca chat lama)
+        const isUserAtBottom = (container.scrollHeight - container.scrollTop) <= (container.clientHeight + 150);
+
+        if (messages.length === 0) {
+            container.innerHTML = '<div class="text-center mt-5"><span class="badge bg-white text-secondary shadow-sm p-2">Mulai percakapan</span></div>';
+            return;
+        }
+
+        let html = '';
+        messages.forEach(msg => {
+            const isMe = msg.sender_type === 'user';
+            const align = isMe ? 'outgoing' : 'incoming';
+            const bubble = isMe ? 'out' : 'in';
+            const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            
+            // Icon status simulasi (bisa dikonekkan ke DB nanti)
+            const check = isMe ? '<i class="bi bi-check2-all text-primary ms-1"></i>' : '';
+
+            html += `
+                <div class="msg-row ${align}">
+                    <div class="msg-bubble ${bubble}">
+                        ${msg.message_content}
+                        <div class="msg-time">${time} ${check}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Ganti isi container (bisa dioptimasi dengan diffing, tapi ini cukup untuk skrg)
+        // Cek dulu biar ga flicker parah kalau datanya sama
+        // (Disini kita langsung timpa saja demi kesederhanaan)
+        container.innerHTML = html;
+
+        // Auto Scroll Down kalau user ada di bawah
+        if (isUserAtBottom) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    async function sendMessage(e) {
+        e.preventDefault();
+        const input = document.getElementById('input-message');
+        const message = input.value.trim();
+        const roomId = document.getElementById('room-id-active').value;
+
+        if (!message || !roomId) return;
+
+        // 1. Optimistic UI (Langsung muncul)
+        const container = document.getElementById('messages-box');
+        const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        
+        container.insertAdjacentHTML('beforeend', `
+            <div class="msg-row outgoing opacity-50">
+                <div class="msg-bubble out">
+                    ${message}
+                    <div class="msg-time">${time} <i class="bi bi-clock ms-1"></i></div>
+                </div>
+            </div>
+        `);
+        container.scrollTop = container.scrollHeight;
+        input.value = '';
+
+        // 2. Kirim ke Server
+        try {
+            const url = URLS.sendChat.replace(':id', roomId);
+            
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': CSRF_TOKEN,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ message_body: message })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || 'Gagal mengirim');
+            }
+
+            // Sukses: Refresh pesan agar dapat data 'resmi' dari server (jam, id, dll)
+            fetchMessages(roomId);
+
+        } catch (err) {
+            console.error("Error kirim:", err);
+            alert("Gagal mengirim pesan: " + err.message);
+            // Opsional: Hapus bubble optimistic atau beri tanda merah
+        }
+    }
 </script>
 @endsection
