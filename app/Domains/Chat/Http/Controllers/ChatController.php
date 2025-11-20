@@ -1,5 +1,4 @@
 <?php
-// app/Domains/Chat/Http/Controllers/ChatController.php
 
 namespace App\Domains\Chat\Http\Controllers;
 
@@ -9,6 +8,7 @@ use App\Domains\Chat\Services\ChatService;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
@@ -27,173 +27,94 @@ class ChatController extends Controller
     }
 
     /**
-     * Menampilkan halaman Inbox utama CS.
-     * Daftar semua room yang di-assign ke dia.
+     * Dashboard Statistik CS
+     * URL: /app/cs/dashboard
      */
     public function index()
     {
         $csUser = Auth::user();
         $rooms = $this->chatRoomRepo->getRoomsForCs($csUser->id);
 
-        // Nanti kita akan buat view 'pages.chat.index'
-        return view('pages.chat.whatsapp', compact('rooms')); // [MODIFIKASI] Di-uncomment dari kode asli
-        
-        // Untuk testing sementara:
-        // return response()->json($rooms);
+        // Pastikan view 'dashboard_cs' ada (hasil rename dari dashboard.cs.clean.blade.php)
+        return view('pages.chat.dashboard_cs', compact('rooms'));
     }
 
     /**
-     * Menampilkan satu ruang obrolan spesifik.
+     * [HALAMAN KONEKSI] Menampilkan QR Code
+     * URL: /app/chat/connect
      */
-    public function show(int $roomId)
+    public function showConnectionPage()
     {
-        $csUser = Auth::user();
-        
-        // TODO: Validasi apakah CS ini berhak mengakses room $roomId
-        
-        $room = $this.chatRoomRepo->findRoomById($roomId); // Asumsi method ini ada
-        $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
-
-        // Nanti kita akan buat view 'pages.chat.show'
-        return view('pages.chat.show', compact('room', 'messages')); // [MODIFIKASI] Di-uncomment dari kode asli
-
-        // Untuk testing sementara:
-        // return response()->json([
-        //     'room' => $room,
-        //     'messages' => $messages
-        // ]);
+        // Menggunakan view lama yang sudah dimodifikasi isinya menjadi khusus QR
+        return view('pages.chat.whatsapp'); 
     }
 
     /**
-     * Menerima kiriman balasan dari CS (via form).
+     * [HALAMAN APLIKASI] UI Chat 3 Kolom
+     * URL: /app/chat/ui
      */
-    public function storeMessage(Request $request, int $roomId)
+    public function showChatUI()
     {
-        $request->validate(['message_body' => 'required|string']);
-        
-        $csUser = Auth::user();
-        $messageBody = $request->input('message_body');
+        // Ambil semua room + pesan terakhir + data customer
+        $rooms = \App\Domains\Chat\Models\ChatRoom::with(['customer', 'messages' => function($q) {
+                        $q->latest()->limit(1);
+                    }])
+                    ->orderBy('updated_at', 'desc')
+                    ->get();
 
-        try {
-            // Panggil "otak" kita untuk mengirim pesan keluar
-            $this->chatService->sendOutboundMessage($csUser, $roomId, $messageBody);
-            
-            return redirect()->route('chat.show', $roomId)
-                             ->with('success', 'Pesan terkirim!');
-
-        } catch (\Exception $e) {
-            return redirect()->back()
-                             ->with('error', 'Gagal mengirim pesan: ' . $e->getMessage());
-        }
+        // Pastikan view 'obrolan_cs' ada (hasil rename dari obrolan.cs.clean.blade.php)
+        return view('pages.chat.obrolan_cs', compact('rooms'));
     }
 
-    // ====================================================================
-    // [METHOD BARU]
-    // ====================================================================
-
     /**
-     * Menampilkan halaman UI Chat 3-kolom (ala WhatsApp).
-     * Halaman ini akan di-handle oleh JS untuk interaktivitas.
-     */
-    /**
-     * Menampilkan halaman UI Chat 3-kolom (ala WhatsApp).
-     * Halaman ini akan di-handle oleh JS untuk interaktivitas.
-     */
-    public function showWhatsAppUI()
-    {
-        // [TES DEBUG]
-        // Kita tidak akan pakai Auth::user() dulu.
-        // Kita paksa ambil SEMUA room.
-        $allRooms = \App\Domains\Chat\Models\ChatRoom::with('customer')
-                                                   ->orderBy('id', 'desc')
-                                                   ->get();
-
-        // Kita log datanya untuk memastikan
-        \Illuminate\Support\Facades\Log::info('TES DEBUG - Data Rooms:', $allRooms->toArray());
-        
-        // Kita juga log siapa yang sedang login
-        \Illuminate\Support\Facades\Log::info('TES DEBUG - User Login:', [
-            'id' => \Illuminate\Support\Facades\Auth::id(), 
-            'email' => \Illuminate\Support\Facades\Auth::user()->email
-        ]);
-
-        // Kirim variabel $rooms ke view, yang berisi SEMUA room
-        $rooms = $allRooms;
-        
-        return view('pages.chat.whatsapp', compact('rooms'));
-    }
-
-    // ====================================================================
-    // [METHOD BARU UNTUK AJAX]
-    // ====================================================================
-
-    /**
-     * [BARU] Mengambil data room spesifik untuk AJAX call.
-     * Ini akan dipanggil oleh JavaScript saat CS mengklik chat di kolom kiri.
+     * [AJAX] Ambil data chat room spesifik
      */
     public function getRoomData(int $roomId)
     {
-        // TODO: Validasi apakah CS ini berhak mengakses room $roomId
-        
-        // [PERBAIKAN]
-        // Kita tidak pakai repository, tapi panggil Model langsung
-        // dan pakai ->with('customer') untuk Eager Loading.
-        $room = \App\Domains\Chat\Models\ChatRoom::with('customer')
-                                                ->find($roomId);
-
-        $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
+        $room = \App\Domains\Chat\Models\ChatRoom::with('customer')->find($roomId);
 
         if (!$room) {
             return response()->json(['error' => 'Room not found'], 404);
         }
-        
-        // Pastikan customer ter-load
-        if (!$room->customer) {
-             return response()->json(['error' => 'Customer data not found for this room.'], 404);
-        }
 
-        // Kirim balik data sebagai JSON
+        $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
+
         return response()->json([
-            'room' => $room, // Ini SEKARANG akan berisi data customer
+            'room' => $room,
             'messages' => $messages
         ]);
     }
 
     /**
-     * [BARU] Menerima kiriman balasan dari CS (via AJAX).
-     * Berbeda dari storeMessage, ini mengembalikan JSON, bukan redirect.
-     */
-    /**
-     * [AJAX] Mengirim pesan dari CS ke Customer via WhatsApp Service.
+     * [AJAX] Kirim pesan
      */
     public function storeAjaxMessage(Request $request, int $roomId)
     {
-        // Validasi input
         $request->validate(['message_body' => 'required|string']);
-        
         $csUser = Auth::user();
-        $messageBody = $request->input('message_body');
 
         try {
-            // 1. Panggil ChatService untuk kirim ke API WA & Simpan ke DB
-            // Pastikan method sendOutboundMessage di ChatService sudah benar (seperti di diskusi sebelumnya)
-            $message = $this->chatService->sendOutboundMessage($csUser, $roomId, $messageBody);
+            $message = $this->chatService->sendOutboundMessage($csUser, $roomId, $request->message_body);
             
-            // 2. Kembalikan sukses beserta data pesan baru (untuk di-render JS)
             return response()->json([
                 'success' => true,
                 'message' => $message 
             ]);
 
         } catch (\Exception $e) {
-            // Log error agar bisa dicek di storage/logs/laravel.log
-            \Illuminate\Support\Facades\Log::error('Gagal kirim pesan Ajax: ' . $e->getMessage());
-
-            // Kembalikan error 500 ke JS
+            Log::error('Chat Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false, 
-                'error' => 'Gagal memproses: ' . $e->getMessage()
+                'error' => $e->getMessage()
             ], 500);
         }
+    }
+    
+    /**
+     * Fallback method untuk mencegah error jika ada route lama yang terlewat
+     */
+    public function show(int $roomId)
+    {
+        return redirect()->route('chat.ui');
     }
 }

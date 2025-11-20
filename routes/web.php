@@ -4,7 +4,8 @@ use App\Http\Controllers\Auth\AuthControllers;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-// use App\Http\Middleware\RedirectIfAuthenticated; // Impor ini ada di file Anda, saya biarkan
+use App\Domains\Chat\Http\Controllers\ChatController;
+use App\Domains\Chat\Http\Controllers\WhatsAppConnectionController;
 
 // Root redirect
 Route::get('/', function () {
@@ -111,3 +112,24 @@ Route::middleware(['auth'])->group(function () {
     });
 
 }); // <-- Ini adalah penutup penting untuk grup Route::middleware(['auth'])
+
+Route::middleware(['web'])->group(function () {
+    
+    // 1. Halaman Dashboard & Views
+    Route::get('/cs/dashboard', function() {
+        return view('pages.chat.dashboard_cs_clean'); 
+    })->name('chat.dashboard');
+
+    Route::get('/cs/chat', [ChatController::class, 'showChatUI'])->name('chat.whatsapp');
+
+    // 2. AJAX Endpoints untuk Chatting (PENTING!)
+    Route::get('/chat/room/{roomId}/data', [ChatController::class, 'getRoomData']); // Load pesan
+    Route::post('/chat/room/{roomId}/send-ajax', [ChatController::class, 'storeAjaxMessage']); // Kirim pesan
+
+    // 3. API Koneksi WhatsApp (Status & QR)
+    // Pastikan URL ini bisa diakses (tanpa middleware admin dulu untuk testing)
+    Route::get('/admin/whatsapp/api/status', [WhatsAppConnectionController::class, 'getStatus'])->name('admin.whatsapp.api.status');
+    Route::get('/admin/whatsapp/api/qr', [WhatsAppConnectionController::class, 'getQrCode'])->name('admin.whatsapp.api.qr');
+    Route::post('/admin/whatsapp/api/reconnect', [WhatsAppConnectionController::class, 'requestReconnect'])->name('admin.whatsapp.api.reconnect');
+
+});
