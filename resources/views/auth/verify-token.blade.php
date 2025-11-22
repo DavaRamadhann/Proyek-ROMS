@@ -290,15 +290,7 @@
             <div class="verify-icon">
                 🔐
             </div>
-            <h3>Verifikasi 
-                @if($verificationType === 'register')
-                    Pendaftaran
-                @elseif($verificationType === 'google')
-                    Google Login
-                @else
-                    Reset Password
-                @endif
-            </h3>
+            <h3>Verifikasi Email</h3>
             <p>Masukkan kode verifikasi 6 digit yang telah kami kirimkan</p>
         </div>
 
@@ -315,7 +307,7 @@
         @endif
 
         <div class="user-email">
-            📧 Kode dikirim ke: <strong>{{ $email }}</strong>
+            📧 Kode dikirim ke: <strong>{{ $user->email ?? '' }}</strong>
         </div>
 
         {{-- 
@@ -323,7 +315,7 @@
         BAGIAN HTML (KONTEN)
         =================================================
         --}}
-        <form method="POST" action="@if($verificationType === 'google') {{ route('verification.google.verify') }} @elseif($verificationType === 'reset_password') {{ route('password.verify') }} @else {{ route('verification.verify') }} @endif" id="verifyForm">
+        <form method="GET" action="/reset-password" id="verifyForm">
             @csrf
             <div class="mb-3">
                 <label for="code-1" class="form-label">Kode Verifikasi</label>
@@ -353,7 +345,7 @@
 
         <div class="resend-section">
             <p class="resend-text">Tidak menerima kode?</p>
-            <form method="POST" action="@if($verificationType === 'google') {{ route('verification.google.resend') }} @elseif($verificationType === 'reset_password') {{ route('password.resend') }} @else {{ route('verification.resend') }} @endif" style="display: inline;">
+            <form method="POST" action="#" style="display: inline;">
                 @csrf
                 <button type="submit" class="btn btn-resend">
                     🔄 Kirim Ulang Kode
@@ -369,7 +361,7 @@
         </div>
 
         <div class="back-link">
-            <a href="{{ $verificationType === 'register' ? route('login') : route('password.request') }}">← Kembali ke {{ $verificationType === 'register' ? 'Login' : 'Lupa Password' }}</a>
+            <a href="/login">← Kembali ke Login</a>
         </div>
     </div>
 </div>

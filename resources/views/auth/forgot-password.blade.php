@@ -118,7 +118,7 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('password.email') }}">
+        <form method="GET" action="/verify-token">
             @csrf
             <div class="mb-3">
                 <label for="email" class="form-label">Alamat Email</label>

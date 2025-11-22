@@ -82,8 +82,23 @@ Route::middleware(['auth'])->group(function () {
         // Baris inilah yang mendefinisikan 'chat.index'
         require __DIR__.'/../app/Domains/Chat/routes/web.php';
 
-        // Nanti Muat Rute Domain Customer
-        // require __DIR__.'/../app/Domains/Customer/routes/web.php';
+        // Muat Rute Domain Customer
+        require __DIR__.'/../app/Domains/Customer/routes/web.php';
+
+        // Muat Rute Domain Order
+        require __DIR__.'/../app/Domains/Order/routes/web.php';
+
+        // Muat Rute Domain Product
+        require __DIR__.'/../app/Domains/Product/routes/web.php';
+
+        // Muat Rute Domain Reminder
+        require __DIR__.'/../app/Domains/Reminder/routes/web.php';
+
+        // Muat Rute Domain Automation (Otomasi)
+        require __DIR__.'/../app/Domains/Automation/routes/web.php';
+
+        // Muat Rute Domain Event (Acara)
+        require __DIR__.'/../app/Domains/Event/routes/web.php';
 
     });
     // --- AKHIR DARI BLOK KODE BARU ---
@@ -116,11 +131,13 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['web'])->group(function () {
     
     // 1. Halaman Dashboard & Views
-    Route::get('/cs/dashboard', function() {
-        return view('pages.chat.dashboard_cs_clean'); 
-    })->name('chat.dashboard');
+    Route::get('/cs/dashboard', [ChatController::class, 'index'])->name('chat.dashboard');
 
-    Route::get('/cs/chat', [ChatController::class, 'showChatUI'])->name('chat.whatsapp');
+    // Halaman Chat Utama
+    Route::get('/cs/chat', [ChatController::class, 'showChatUI'])->name('chat.index');
+
+    // Halaman Scan QR WhatsApp
+    Route::get('/cs/whatsapp/scan', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.scan');
 
     // 2. AJAX Endpoints untuk Chatting (PENTING!)
     Route::get('/chat/room/{roomId}/data', [ChatController::class, 'getRoomData']); // Load pesan

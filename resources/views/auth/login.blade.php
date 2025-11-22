@@ -189,7 +189,7 @@
             <h3>Halo Sahabat ROMS!</h3>
             <p>Selamat datang kembali. Silakan login menggunakan email dan password Anda.</p>
 
-            <form method="POST" action="/login">
+            <form method="POST" action="{{ route('login') }}">
                 @csrf
                 @if ($errors->has('email'))
                     <div class="alert alert-danger text-center" role="alert">
@@ -206,10 +206,9 @@
                            value="{{ old('email') }}"
                            required
                            autofocus
-                           autocomplete="email"
                            placeholder="Masukkan email"
-                           pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-                           title="Hanya alamat email yang valid yang diizinkan">
+                           pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
+                           title="Hanya alamat email @gmail.com yang diizinkan">
                 </div>
 
                 <div class="mb-3">
@@ -219,14 +218,10 @@
                            id="password"
                            name="password"
                            required
-                           autocomplete="current-password"
                            placeholder="Masukkan kata sandi">
-                </div>
-
-                <div class="mb-3 text-end">
-                    <a href="{{ route('password.request') }}" style="color: #B45253; text-decoration: none; font-size: 0.9rem;">
-                        Lupa Kata Sandi?
-                    </a>
+                    <div class="text-end mt-1">
+                        <a href="{{ route('password.request') }}" style="color: #B45253; font-size: 0.8rem; text-decoration: none;">Lupa Kata Sandi?</a>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-login">Masuk</button>
@@ -234,9 +229,9 @@
                 <script>
                 document.getElementById('email').addEventListener('input', function () {
                     const emailField = this;
-                    const pattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+                    const pattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
                     if (!pattern.test(emailField.value) && emailField.value !== '') {
-                        emailField.setCustomValidity("Hanya alamat email yang valid yang diizinkan.");
+                        emailField.setCustomValidity("Hanya alamat email dengan domain @gmail.com yang diizinkan.");
                     } else {
                         emailField.setCustomValidity("");
                     }

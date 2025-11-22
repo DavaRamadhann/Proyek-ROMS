@@ -1,5 +1,4 @@
 <?php
-// app/Domains/Customer/Repositories/CustomerRepository.php
 
 namespace App\Domains\Customer\Repositories;
 
@@ -10,18 +9,26 @@ class CustomerRepository implements CustomerRepositoryInterface
 {
     public function findByPhone(string $phone): ?Customer
     {
-        // TODO: Normalisasi nomor HP (e.g., 0812 -> 62812)
-        // Untuk sekarang, kita cari apa adanya
         return Customer::where('phone', $phone)->first();
     }
 
     public function create(array $data): Customer
     {
-        // Hanya membuat data minimal yang diperlukan dari chat
+        // Pastikan nama tidak null
         return Customer::create([
             'name'  => $data['name'] ?? 'Guest ' . substr($data['phone'], -4),
             'phone' => $data['phone'],
             'email' => $data['email'] ?? null,
         ]);
+    }
+
+    // [BARU] Tambahkan fungsi ini agar ChatService tidak error
+    public function update(int $id, array $data): bool
+    {
+        $customer = Customer::find($id);
+        if ($customer) {
+            return $customer->update($data);
+        }
+        return false;
     }
 }

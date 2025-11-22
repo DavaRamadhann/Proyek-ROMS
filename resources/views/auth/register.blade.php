@@ -194,7 +194,7 @@
             <h3>Selamat Datang di ROMS!</h3>
             <p>Belum Punya Akun? Yuk, Gabung Sekarang Juga!</p>
 
-            <form method="POST" action="/register">
+            <form method="POST" action="{{ route('register') }}">
                 @csrf
 
                 <div class="mb-2">
@@ -205,7 +205,6 @@
                            name="name"
                            value="{{ old('name') }}"
                            required autofocus
-                           autocomplete="name"
                            placeholder="Masukkan nama">
                     @error('name') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
@@ -218,7 +217,6 @@
                            name="email"
                            value="{{ old('email') }}"
                            required
-                           autocomplete="email"
                            placeholder="Masukkan email"
                            pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
                            title="Hanya alamat email @gmail.com yang diizinkan">
@@ -232,7 +230,6 @@
                            id="password"
                            name="password"
                            required
-                           autocomplete="new-password"
                            placeholder="Masukkan kata sandi">
                     @error('password') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
@@ -244,7 +241,6 @@
                            id="password_confirmation"
                            name="password_confirmation"
                            required
-                           autocomplete="new-password"
                            placeholder="Masukkan kembali kata sandi">
                 </div>
 

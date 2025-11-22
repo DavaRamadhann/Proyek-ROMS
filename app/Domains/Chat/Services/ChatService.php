@@ -44,13 +44,15 @@ class ChatService
         $customer = $this->customerRepo->findByPhone($senderPhone);
 
         if (!$customer) {
-            $customer = $this->customerRepo->createCustomer([
+            // [PERBAIKAN 1] Ganti createCustomer jadi create
+            $customer = $this->customerRepo->create([
                 'phone' => $senderPhone,
                 'name' => $senderName
             ]);
         } 
         else if ($customer->name !== $senderName && $senderName !== $senderPhone) {
-            $this->customerRepo->updateCustomer($customer->id, ['name' => $senderName]);
+            // [PERBAIKAN 2] Ganti updateCustomer jadi update
+            $this->customerRepo->update($customer->id, ['name' => $senderName]);
             $customer->refresh();
         }
 

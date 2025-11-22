@@ -23,4 +23,6 @@ interface CustomerRepositoryInterface
      * @return Customer
      */
     public function create(array $data): Customer;
+
+    public function update(int $id, array $data): bool;
 }

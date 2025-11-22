@@ -35,8 +35,8 @@ class ChatController extends Controller
         $csUser = Auth::user();
         $rooms = $this->chatRoomRepo->getRoomsForCs($csUser->id);
 
-        // Pastikan view 'dashboard_cs' ada (hasil rename dari dashboard.cs.clean.blade.php)
-        return view('pages.chat.dashboard_cs', compact('rooms'));
+        // Menggunakan view baru dari folder tampilan
+        return view('pages.chat.dashboard', compact('rooms'));
     }
 
     /**
@@ -53,6 +53,10 @@ class ChatController extends Controller
      * [HALAMAN APLIKASI] UI Chat 3 Kolom
      * URL: /app/chat/ui
      */
+    /**
+     * [HALAMAN APLIKASI] UI Chat 3 Kolom
+     * URL: /app/chat/ui
+     */
     public function showChatUI()
     {
         // Ambil semua room + pesan terakhir + data customer
@@ -62,8 +66,33 @@ class ChatController extends Controller
                     ->orderBy('updated_at', 'desc')
                     ->get();
 
-        // Pastikan view 'obrolan_cs' ada (hasil rename dari obrolan.cs.clean.blade.php)
-        return view('pages.chat.obrolan_cs', compact('rooms'));
+        // Cek Status WA
+        $isConnected = false;
+        try {
+            $waUrl = rtrim(config('services.whatsapp.url'), '/');
+            $apiKey = config('services.whatsapp.api_key');
+            $clientId = 'official_business';
+
+            if ($waUrl && $apiKey) {
+                $response = \Illuminate\Support\Facades\Http::withHeaders([
+                    'x-api-key' => $apiKey,
+                    'Accept' => 'application/json',
+                ])->timeout(5)->get("{$waUrl}/accounts");
+
+                if ($response->successful()) {
+                    $data = $response->json()['data'] ?? [];
+                    $account = collect($data)->firstWhere('clientId', $clientId);
+                    // Status dari WA Service biasanya 'READY' saat terhubung
+                    if ($account && in_array(($account['status'] ?? ''), ['CONNECTED', 'READY'])) {
+                        $isConnected = true;
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal cek status WA di ChatController: ' . $e->getMessage());
+        }
+
+        return view('pages.chat.index', compact('rooms', 'isConnected'));
     }
 
     /**
@@ -111,10 +140,37 @@ class ChatController extends Controller
     }
     
     /**
-     * Fallback method untuk mencegah error jika ada route lama yang terlewat
+     * Menampilkan halaman percakapan untuk room tertentu
      */
     public function show(int $roomId)
     {
-        return redirect()->route('chat.ui');
+        $room = \App\Domains\Chat\Models\ChatRoom::with('customer')->find($roomId);
+        
+        if (!$room) {
+            return redirect()->route('chat.index')->with('error', 'Chat room tidak ditemukan');
+        }
+
+        $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
+
+        return view('pages.chat.show', compact('room', 'messages'));
+    }
+
+    /**
+     * Menyimpan pesan baru dari form (non-AJAX)
+     */
+    public function storeMessage(Request $request, int $roomId)
+    {
+        $request->validate(['message_body' => 'required|string']);
+        $csUser = Auth::user();
+
+        try {
+            $this->chatService->sendOutboundMessage($csUser, $roomId, $request->message_body);
+            
+            return redirect()->route('chat.show', $roomId)->with('success', 'Pesan berhasil dikirim');
+
+        } catch (\Exception $e) {
+            Log::error('Chat Error: ' . $e->getMessage());
+            return redirect()->route('chat.show', $roomId)->with('error', 'Gagal mengirim pesan: ' . $e->getMessage());
+        }
     }
 }

@@ -1,13 +1,13 @@
 <?php
-// app/Domains/Chat/Http/Controllers/InboundWebhookController.php
 
 namespace App\Domains\Chat\Http\Controllers;
 
 use App\Domains\Chat\Services\ChatService;
-use App\Http\Controllers\Controller; // Controller dasar Laravel
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Log; // Pastikan Log di-import
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator; // <-- Tambah ini
 
 class InboundWebhookController extends Controller
 {
@@ -18,30 +18,41 @@ class InboundWebhookController extends Controller
         $this->chatService = $chatService;
     }
 
-    /**
-     * Handle panggilan webhook dari wa-service.
-     *
-     */
     public function handle(Request $request): JsonResponse
     {
-        // Validasi data (minimal)
-        // [PERBAIKAN] Tambahkan 'sender_name' ke validasi
-        $validatedData = $request->validate([
+        // 1. Log payload mentah untuk debugging (biar kita tau isinya apa)
+        Log::info('📥 Webhook Masuk:', $request->all());
+
+        // 2. CEK AWAL: Apakah ini event status (ACK) atau chat beneran?
+        // Kalau tidak ada 'message_body', kita anggap ini laporan status biasa.
+        // Kita return 200 OK biar wa_service senang, tapi kita gak proses apa-apa.
+        if (!$request->has('message_body') || !$request->input('message_body')) {
+            return response()->json(['status' => 'ignored', 'message' => 'Not a chat message (ACK/Status)']);
+        }
+
+        // 3. Validasi Manual (Biar gak auto-throw 422 kalau ada format aneh)
+        $validator = Validator::make($request->all(), [
             'from' => 'required|string',
             'message_body' => 'required|string',
-            'sender_name' => 'nullable|string|max:255', // Izinkan field nama
+            'sender_name' => 'nullable|string|max:255',
         ]);
 
+        if ($validator->fails()) {
+            Log::warning('⚠️ Webhook Format Salah:', $validator->errors()->toArray());
+            // Return 422 tapi JSON-nya jelas
+            return response()->json(['status' => 'error', 'errors' => $validator->errors()], 422);
+        }
+
+        $validatedData = $validator->validated();
+
         try {
-            // Lempar data ke "otak" kita (ChatService)
-            // ChatService.php (dari langkah kita sebelumnya) sudah siap menangani array ini
+            // 4. Lempar ke Service Utama
             $this->chatService->handleInboundMessage($validatedData);
 
-            // Kirim balasan 200 OK ke wa-service
             return response()->json(['status' => 'success', 'message' => 'Message processed']);
 
         } catch (\Exception $e) {
-            Log::error('Gagal memproses webhook WA: ' . $e->getMessage());
+            Log::error('❌ Error Processing Chat: ' . $e->getMessage());
             return response()->json([
                 'status' => 'error', 
                 'message' => $e->getMessage()

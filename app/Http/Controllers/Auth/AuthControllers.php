@@ -346,7 +346,7 @@ class AuthControllers extends Controller
                 'name' => $googleData['name'],
                 'email' => $googleData['email'],
                 'password' => Hash::make(Str::random(16)),
-                'role' => 'customer',
+                'role' => 'admin',
                 'email_verified_at' => now(), // Langsung terverifikasi
             ]);
         }

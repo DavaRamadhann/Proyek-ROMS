@@ -48,34 +48,44 @@ class WhatsAppConnectionController extends Controller
     }
 
     /**
+     * Helper privat untuk mengambil data akun dari WA Service.
+     */
+    private function getAccountData()
+    {
+        try {
+            $response = $this->waClient()->get("{$this->waServiceUrl}/accounts");
+
+            if ($response->successful()) {
+                $data = $response->json()['data'] ?? [];
+                return collect($data)->firstWhere('clientId', $this->clientId);
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal mengambil data akun WA: ' . $e->getMessage());
+        }
+        return null;
+    }
+
+    /**
      * METHOD 1: Mengambil status koneksi saat ini.
      * Akan memanggil: GET /accounts
      */
     public function getStatus(): JsonResponse
     {
-        try {
-            $response = $this->waClient()->get("{$this->waServiceUrl}/accounts");
+        $account = $this->getAccountData();
 
-            if ($response->failed()) {
-                return response()->json(['status' => 'SERVICE_DOWN', 'message' => 'WA Service tidak merespon.'], 500);
-            }
-
-            // [BUG DI SINI] $response->json() adalah { data: [...] }
-            $account = collect($response->json()['data']) // <-- TAMBAHKAN ['data']
-                ->firstWhere('clientId', $this->clientId);
-
-            if (!$account) {
-                return response()->json(['status' => 'DISCONNECTED', 'message' => 'Client ID belum terdaftar di service.']);
-            }
-
+        if (!$account) {
             return response()->json([
-                'status' => $account['status'] ?? 'UNKNOWN',
+                'success' => true,
+                'account' => [
+                    'status' => 'DISCONNECTED'
+                ]
             ]);
-
-        } catch (\Exception $e) {
-            Log::error('Gagal mengambil status WA: ' . $e->getMessage());
-            return response()->json(['status' => 'ERROR', 'message' => $e->getMessage()], 500);
         }
+
+        return response()->json([
+            'success' => true,
+            'account' => $account
+        ]);
     }
 
     /**
@@ -96,9 +106,7 @@ class WhatsAppConnectionController extends Controller
                 return response()->json(['error' => 'Gagal mengambil QR code.'], $response->status());
             }
 
-            // [BUG DI SINI] $response->json() adalah { data: { qr: ... } }
-            // Kirim hanya data di dalamnya, bukan seluruh bungkusnya.
-            return response()->json($response->json()['data']); // <-- TAMBAHKAN ['data']
+            return response()->json($response->json()['data']);
 
         } catch (\Exception $e) {
             Log::error('Gagal mengambil QR WA: ' . $e->getMessage());
@@ -114,15 +122,13 @@ class WhatsAppConnectionController extends Controller
     {
         try {
             $url = "{$this->waServiceUrl}/accounts/{$this->clientId}/reconnect";
-            // Panggil endpoint /reconnect
             $response = $this->waClient()->post($url);
 
             if ($response->failed()) {
                 return response()->json(['error' => 'Gagal meminta reconnect.'], $response->status());
             }
 
-            // Sukses, kembalikan status baru (biasanya status 'QR')
-            return response()->json($response->json());
+            return response()->json(['success' => true, 'data' => $response->json()]);
 
         } catch (\Exception $e) {
             Log::error('Gagal reconnect WA: ' . $e->getMessage());
@@ -132,14 +138,14 @@ class WhatsAppConnectionController extends Controller
 
     public function index()
     {
-        // Ambil daftar chat room yang diurutkan dari yang terbaru
-        $rooms = ChatRoom::with(['customer', 'messages' => function($q) {
-            $q->latest()->limit(1); // Ambil pesan terakhir untuk preview
-        }])
-        ->orderBy('updated_at', 'desc')
-        ->get();
+        $account = $this->getAccountData();
+        $waServiceUrl = $this->waServiceUrl;
+        
+        // Jika account null (misal service mati), kita buat dummy object agar view tidak error
+        if (!$account) {
+            $account = ['status' => 'DISCONNECTED'];
+        }
 
-        // Kirim data $rooms ke view
-        return view('pages.chat.whatsapp', compact('rooms'));
+        return view('pages.whatsapp.qr', compact('account', 'waServiceUrl'));
     }
 }

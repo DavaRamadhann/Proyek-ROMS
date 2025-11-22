@@ -5,31 +5,27 @@
 @push('styles')
 <style>
     /* --- RESET LAYOUT KHUSUS HALAMAN CHAT --- */
-    /* Sembunyikan scrollbar window utama agar tidak ada double scroll */
     body { overflow: hidden; } 
 
-    /* Wrapper Utama: Mengapung di atas layout dashboard bawaan */
+    /* Wrapper Utama */
     .wa-fullscreen-wrapper {
         position: fixed;
-        top: 60px; /* Sesuaikan dengan tinggi Navbar kamu */
+        top: 60px; 
         left: 0;
         width: 100vw;
         height: calc(100vh - 60px);
         background-color: #d1d7db;
-        z-index: 9999; /* Pastikan di atas sidebar/footer dashboard */
+        z-index: 9999; 
         display: flex;
         justify-content: center;
-        padding: 0; /* Reset padding */
+        padding: 0; 
     }
 
-    /* Jika sidebar dashboard kamu lebar, mungkin perlu left: 250px. 
-       Tapi untuk amannya kita timpa saja (full screen total) */
-
-    /* Container Chat ala WA Web */
+    /* Container Chat */
     .wa-container {
         width: 100%;
         height: 100%;
-        max-width: 1920px; /* Full width di layar besar */
+        max-width: 1920px; 
         background: #fff;
         display: flex;
         overflow: hidden;
@@ -94,8 +90,8 @@
         flex: 1;
         display: flex;
         flex-direction: column;
-        background-color: #efe7dd; /* Warna dasar WA */
-        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); /* Doodle WA */
+        background-color: #efe7dd; 
+        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); 
         background-repeat: repeat; 
         position: relative;
     }
@@ -137,9 +133,12 @@
     .msg-bubble.out { background: #d9fdd3; border-top-right-radius: 0; }
 
     .msg-time {
-        float: right; margin-left: 10px; margin-top: 4px;
-        font-size: 10px; color: #667781; display: flex; align-items: center;
+        display: block;
+        text-align: right;
+        margin-top: 4px;
+        font-size: 10px; color: #667781;
     }
+    .msg-time i { margin-left: 4px; }
 
     /* Footer Input */
     .wa-footer {
@@ -176,7 +175,7 @@
 {{-- WRAPPER UTAMA (FULL SCREEN) --}}
 <div class="wa-fullscreen-wrapper">
     
-    {{-- 1. PANEL KONEKSI (Jika WA belum Ready) --}}
+    {{-- 1. PANEL KONEKSI --}}
     <div id="connection-panel" class="card shadow-lg border-0 p-4 align-self-center d-none" style="width: 400px;">
         <div class="text-center">
             <h4 class="mb-3">Koneksi WhatsApp</h4>
@@ -195,7 +194,7 @@
         </div>
     </div>
 
-    {{-- 2. INTERFACE CHAT (Jika WA Ready) --}}
+    {{-- 2. INTERFACE CHAT --}}
     <div id="chat-interface" class="wa-container d-none">
         
         {{-- SIDEBAR --}}
@@ -219,9 +218,22 @@
                         </div>
                         <div class="chat-info">
                             <div class="d-flex justify-content-between">
-                                <div class="chat-name fw-bold">{{ $room->customer->name ?? 'Guest' }}</div>
+                                <div class="chat-name fw-bold">
+                                    @php
+                                        $rawName = $room->customer->name ?? 'Guest';
+                                        $phone = $room->customer->phone ?? '-';
+                                        $displayName = $rawName;
+                                        if (str_contains($rawName, '@c.us') || str_contains($rawName, '@g.us')) {
+                                            $displayName = $phone;
+                                        }
+                                    @endphp
+                                    {{ $displayName }}
+                                </div>
                                 <div class="chat-meta">{{ $room->updated_at->format('H:i') }}</div>
                             </div>
+                            {{-- ADDED: Phone Number Display --}}
+                            <div class="small text-muted mb-1" style="font-size: 11px;">{{ $phone }}</div>
+
                             <div class="chat-preview">
                                 @if($room->messages->last())
                                     @if($room->messages->last()->sender_type == 'user')
@@ -242,7 +254,7 @@
 
         {{-- MAIN AREA --}}
         <div class="wa-main">
-            {{-- Placeholder (Belum pilih chat) --}}
+            {{-- Placeholder --}}
             <div id="view-placeholder" class="placeholder-screen">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/150px-WhatsApp.svg.png" width="80" class="mb-4 opacity-50">
                 <h3>WhatsApp for ROMS</h3>
@@ -272,7 +284,7 @@
                     
                     <form id="form-send" class="d-flex flex-grow-1" onsubmit="sendMessage(event)">
                         <input type="hidden" id="room-id-active">
-                        <input type="text" id="input-message" class="wa-input" placeholder="Ketik pesan" autocomplete="off">
+                        <textarea id="input-message" class="wa-input" rows="1" placeholder="Ketik pesan" style="resize:none; overflow-y:hidden;"></textarea>
                         <button type="submit" class="btn p-0 ms-3 border-0 bg-transparent">
                             <i class="bi bi-send-fill fs-4 text-secondary"></i>
                         </button>
@@ -286,12 +298,10 @@
 
 {{-- SCRIPT LOGIKA --}}
 <script>
-    // --- KONFIGURASI URL (PENTING: Generate pakai Blade biar ga 404) ---
     const URLS = {
         status: "{{ route('admin.whatsapp.api.status') }}",
         qr: "{{ route('admin.whatsapp.api.qr') }}",
         reconnect: "{{ route('admin.whatsapp.api.reconnect') }}",
-        // Kita buat template URL untuk chat, nanti :id diganti via JS
         getChat: "{{ url('/chat/room/:id/data') }}", 
         sendChat: "{{ url('/chat/room/:id/send-ajax') }}"
     };
@@ -301,17 +311,14 @@
     let currentStatus = 'INIT';
     let activeRoomId = null;
     let pollingChatInterval = null;
-    let qrCodeObj = null;
 
-    // --- 1. LOGIKA KONEKSI (WAJIB JALAN DULUAN) ---
     document.addEventListener('DOMContentLoaded', () => {
         checkConnection();
-        // Cek status berkala tiap 5 detik
         setInterval(checkConnection, 5000); 
     });
 
     async function checkConnection() {
-        if (currentStatus === 'READY' && !activeRoomId) return; // Hemat request jika sudah ready dan belum buka chat
+        if (currentStatus === 'READY' && !activeRoomId) return; 
 
         try {
             const res = await fetch(URLS.status);
@@ -339,7 +346,6 @@
             chatUI.classList.add('d-none');
         }
 
-        // Reset
         qrWrap.classList.add('d-none');
         loadWrap.classList.add('d-none');
 
@@ -355,7 +361,6 @@
             badge.textContent = 'TERPUTUS'; badge.className = 'badge bg-danger';
             loadWrap.classList.remove('d-none');
             loadText.textContent = 'Koneksi terputus. Menghubungkan ulang...';
-            // Auto reconnect
             fetch(URLS.reconnect, { method: 'POST', headers: {'X-CSRF-TOKEN': CSRF_TOKEN} });
         }
     }
@@ -368,56 +373,94 @@
             const data = await res.json();
             
             const el = document.getElementById('qrcode');
-            el.innerHTML = ''; // Clear lama
+            el.innerHTML = ''; 
             new QRCode(el, { text: data.qr, width: 200, height: 200 });
         } catch (e) { console.error(e); }
     }
 
 
-    // --- 2. LOGIKA CHAT (KIRIM & TERIMA) ---
+    // --- LOGIKA CHAT ---
 
     async function openChat(roomId, el) {
-        // Highlight sidebar
         document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
         el.classList.add('active');
 
         activeRoomId = roomId;
         document.getElementById('room-id-active').value = roomId;
 
-        // Tampilkan area chat
         document.getElementById('view-placeholder').classList.add('d-none');
         document.getElementById('view-chat').classList.remove('d-none');
         document.getElementById('view-chat').classList.add('d-flex');
 
-        // Reset Chat Area
         document.getElementById('messages-box').innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-secondary spinner-border-sm"></div></div>';
 
-        // Ambil Data Awal
         await fetchMessages(roomId);
 
-        // Set Nama & Avatar di Header Chat
-        const name = el.querySelector('.chat-name').textContent;
+        // Set Header
+        // Note: We need to get the name from the clicked element or data
+        // The element has .chat-name inside it
+        const nameEl = el.querySelector('.chat-name');
+        const name = nameEl ? nameEl.textContent.trim() : 'User';
         document.getElementById('chat-name').textContent = name;
         document.getElementById('chat-avatar').textContent = name.charAt(0);
-        document.getElementById('chat-avatar').style.backgroundColor = el.querySelector('.avatar-circle').style.backgroundColor;
+        
+        const avatarBg = el.querySelector('.avatar-circle').style.backgroundColor;
+        document.getElementById('chat-avatar').style.backgroundColor = avatarBg;
 
-        // Mulai Polling Pesan (Tiap 2 detik)
         if (pollingChatInterval) clearInterval(pollingChatInterval);
-        pollingChatInterval = setInterval(() => fetchMessages(roomId), 2000);
+        pollingChatInterval = setInterval(() => fetchMessages(roomId), 5000); 
+
+        // --- REALTIME LISTENER ---
+        if (window.Echo) {
+            console.log("Listening to channel: chat-room." + roomId);
+            Echo.private('chat-room.' + roomId)
+                .listen('.new-message', (e) => {
+                    console.log("New message received:", e);
+                    if (activeRoomId == roomId) {
+                        const msg = e.message;
+                        const isMe = msg.sender_type === 'user';
+                        const align = isMe ? 'outgoing' : 'incoming';
+                        const bubble = isMe ? 'out' : 'in';
+                        const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                        const check = isMe ? '<i class="bi bi-check2-all text-primary ms-1"></i>' : '';
+
+                        const html = `
+                            <div class="msg-row ${align}">
+                                <div class="msg-bubble ${bubble}">
+                                    ${msg.message_content}
+                                    <div class="msg-time">
+                                        ${time} ${check}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        const container = document.getElementById('messages-box');
+                        const isUserAtBottom = (container.scrollHeight - container.scrollTop) <= (container.clientHeight + 150);
+                        
+                        container.insertAdjacentHTML('beforeend', html);
+                        
+                        if (isUserAtBottom || isMe) {
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    }
+                });
+        } else {
+            console.warn("Echo not found. Realtime disabled.");
+        }
     }
 
     async function fetchMessages(roomId) {
-        if (activeRoomId != roomId) return; // Cegah race condition
+        if (activeRoomId != roomId) return; 
 
         try {
-            // Replace placeholder :id dengan ID asli
             const url = URLS.getChat.replace(':id', roomId);
             const res = await fetch(url);
             
             if (!res.ok) throw new Error("Gagal load chat");
             
             const data = await res.json();
-            document.getElementById('chat-phone').textContent = data.room.customer.phone; // Update nomor HP
+            document.getElementById('chat-phone').textContent = data.room.customer.phone; 
 
             renderMessages(data.messages);
 
@@ -428,8 +471,6 @@
 
     function renderMessages(messages) {
         const container = document.getElementById('messages-box');
-        
-        // Cek apakah user sedang scroll di atas (biar ga loncat kalau lagi baca chat lama)
         const isUserAtBottom = (container.scrollHeight - container.scrollTop) <= (container.clientHeight + 150);
 
         if (messages.length === 0) {
@@ -443,40 +484,35 @@
             const align = isMe ? 'outgoing' : 'incoming';
             const bubble = isMe ? 'out' : 'in';
             const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-            
-            // Icon status simulasi (bisa dikonekkan ke DB nanti)
             const check = isMe ? '<i class="bi bi-check2-all text-primary ms-1"></i>' : '';
 
             html += `
                 <div class="msg-row ${align}">
                     <div class="msg-bubble ${bubble}">
                         ${msg.message_content}
-                        <div class="msg-time">${time} ${check}</div>
+                        <div class="msg-time">
+                            ${time} ${check}
+                        </div>
                     </div>
                 </div>
             `;
         });
 
-        // Ganti isi container (bisa dioptimasi dengan diffing, tapi ini cukup untuk skrg)
-        // Cek dulu biar ga flicker parah kalau datanya sama
-        // (Disini kita langsung timpa saja demi kesederhanaan)
         container.innerHTML = html;
 
-        // Auto Scroll Down kalau user ada di bawah
         if (isUserAtBottom) {
             container.scrollTop = container.scrollHeight;
         }
     }
 
     async function sendMessage(e) {
-        e.preventDefault();
+        if(e) e.preventDefault(); // Handle if called via event
         const input = document.getElementById('input-message');
         const message = input.value.trim();
         const roomId = document.getElementById('room-id-active').value;
 
         if (!message || !roomId) return;
 
-        // 1. Optimistic UI (Langsung muncul)
         const container = document.getElementById('messages-box');
         const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         
@@ -484,14 +520,15 @@
             <div class="msg-row outgoing opacity-50">
                 <div class="msg-bubble out">
                     ${message}
-                    <div class="msg-time">${time} <i class="bi bi-clock ms-1"></i></div>
+                    <div class="msg-time">
+                        ${time} <i class="bi bi-clock ms-1"></i>
+                    </div>
                 </div>
             </div>
         `);
         container.scrollTop = container.scrollHeight;
         input.value = '';
 
-        // 2. Kirim ke Server
         try {
             const url = URLS.sendChat.replace(':id', roomId);
             
@@ -511,14 +548,62 @@
                 throw new Error(data.error || 'Gagal mengirim');
             }
 
-            // Sukses: Refresh pesan agar dapat data 'resmi' dari server (jam, id, dll)
-            fetchMessages(roomId);
+            showSentNotification();
 
         } catch (err) {
             console.error("Error kirim:", err);
             alert("Gagal mengirim pesan: " + err.message);
-            // Opsional: Hapus bubble optimistic atau beri tanda merah
         }
+    }
+
+    // Auto-resize & Enter
+    const inputMsg = document.getElementById('input-message');
+    if(inputMsg){
+        inputMsg.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+            if(this.value === '') this.style.height = 'auto';
+        });
+
+        inputMsg.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(e);
+            }
+        });
+    }
+
+    function showSentNotification() {
+        let notif = document.getElementById('msg-sent-notif');
+        if (!notif) {
+            notif = document.createElement('div');
+            notif.id = 'msg-sent-notif';
+            notif.style.cssText = `
+                position: fixed;
+                bottom: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.7);
+                color: white;
+                padding: 8px 16px;
+                border-radius: 20px;
+                font-size: 14px;
+                z-index: 9999;
+                transition: opacity 0.3s;
+            `;
+            notif.innerHTML = '<i class="bi bi-check-circle me-1"></i> Pesan terkirim';
+            document.body.appendChild(notif);
+        }
+        
+        notif.style.opacity = '1';
+        notif.style.display = 'block';
+
+        setTimeout(() => {
+            notif.style.opacity = '0';
+            setTimeout(() => {
+                notif.style.display = 'none';
+            }, 300);
+        }, 2000);
     }
 </script>
 @endsection

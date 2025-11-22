@@ -15,5 +15,5 @@ use App\Domains\Chat\Http\Controllers\InboundWebhookController;
 
 Route::post('/v1/webhook/whatsapp-inbound', [InboundWebhookController::class, 'handle'])
     ->name('api.chat.webhook.inbound');
-
+    
 // (Tidak ada 'require' atau 'use Illuminate\Http\Request' di sini!)
