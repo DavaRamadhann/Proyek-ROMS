@@ -10,7 +10,7 @@ use App\Models\User;
 use App\Domains\Chat\Events\NewChatMessage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache; // <-- TAMBAHKAN INI
+use Illuminate\Support\Facades\Cache;
 
 class ChatService
 {
@@ -33,82 +33,140 @@ class ChatService
 
     /**
      * "Otak" utama untuk menangani pesan masuk dari Webhook.
-     * (Tidak ada perubahan dari Bagian 2)
      */
     public function handleInboundMessage(array $data)
     {
-        $senderPhone = $data['from'];
+        $rawPhone = $data['from'];
         $messageBody = $data['message_body'];
-        $senderName = $data['sender_name'] ?? $senderPhone;
 
-        $customer = $this->customerRepo->findByPhone($senderPhone);
+        // [FILTER] Hanya terima pesan dari Private Chat (@c.us)
+        // Abaikan Group (@g.us), Broadcast (@broadcast), dll.
+        if (!str_ends_with($rawPhone, '@c.us')) {
+            return null;
+        }
+        
+        // 1. Bersihkan nomor telepon
+        // Hapus suffix @c.us, @s.whatsapp.net, dll
+        $cleanPhone = preg_replace('/@.+/', '', $rawPhone);
+        // Hapus karakter non-digit
+        $cleanPhone = preg_replace('/[^0-9]/', '', $cleanPhone);
+        
+        // Standarisasi ke format 62 (jika diawali 08, ubah ke 628)
+        if (str_starts_with($cleanPhone, '08')) {
+            $cleanPhone = '62' . substr($cleanPhone, 1);
+        }
+
+        // 2. Tentukan Nama Pengirim
+        // Prioritas: pushName (nama profil WA) -> sender_name (dari kontak) -> Nomor HP
+        $pushName = $data['pushName'] ?? null;
+        $contactName = $data['sender_name'] ?? null;
+        
+        $senderName = $pushName ?: ($contactName ?: $cleanPhone);
+
+        $customer = $this->customerRepo->findByPhone($cleanPhone);
 
         if (!$customer) {
-            // [PERBAIKAN 1] Ganti createCustomer jadi create
             $customer = $this->customerRepo->create([
-                'phone' => $senderPhone,
+                'phone' => $cleanPhone,
                 'name' => $senderName
             ]);
         } 
-        else if ($customer->name !== $senderName && $senderName !== $senderPhone) {
-            // [PERBAIKAN 2] Ganti updateCustomer jadi update
-            $this->customerRepo->update($customer->id, ['name' => $senderName]);
-            $customer->refresh();
+        else {
+            // Update nama jika belum diset manual dan ada nama baru yang lebih valid
+            // Kita hanya update jika nama saat ini adalah nomor telepon, atau jika ada pushName baru
+            if (!$customer->is_manual_name && $customer->name === $customer->phone && $senderName !== $cleanPhone) {
+                $this->customerRepo->update($customer->id, ['name' => $senderName]);
+                $customer->refresh();
+            }
         }
 
         $room = $this->chatRoomRepo->findOrCreateRoomForCustomer($customer->id);
 
-        // 5. [TER-UPDATE] Logika assign CS sekarang memanggil method baru
         if ($room->wasRecentlyCreated && !$room->cs_user_id) {
-            $csId = $this->assignCsToNewRoom(); // <-- Memanggil method round-robin
+            $csId = $this->assignCsToNewRoom();
             if ($csId) {
                 $this->chatRoomRepo->assignCsToRoom($room->id, $csId);
             }
         }
 
+        // Simpan pesan baru ke database
         $newMessage = $this->chatMessageRepo->createMessage([
             'chat_room_id' => $room->id,
-            'sender_id' => null,
+            'sender_id' => $customer->id,
             'sender_type' => 'customer',
             'message_content' => $messageBody
         ]);
+
+        // PENTING: Touch room agar updated_at terupdate untuk Long Polling
+        $room->update(['updated_at' => now()]);
 
         if ($room->status == 'closed') {
             $this->chatRoomRepo->updateRoomStatus($room->id, 'open');
         }
         
-        broadcast(new NewChatMessage($newMessage));
+        try {
+            broadcast(new NewChatMessage($newMessage));
+            broadcast(new \App\Domains\Chat\Events\ChatListUpdated($room)); // Update List
+        } catch (\Exception $e) {
+            Log::error('Broadcast error: ' . $e->getMessage());
+        }
 
         return $newMessage;
     }
 
     /**
      * Mengirim pesan keluar (balasan dari CS).
-     * (Tidak ada perubahan dari Bagian 2)
      */
-    public function sendOutboundMessage(User $csUser, int $roomId, string $messageBody)
+    public function sendOutboundMessage(User $csUser, int $roomId, string $messageBody, $attachment = null)
     {
         $room = $this->chatRoomRepo->findRoomById($roomId);
         if (!$room || !$room->customer) {
             throw new \Exception("Chat room atau Customer tidak ditemukan.");
         }
 
+        // 1. Handle Attachment Upload
+        $attachmentUrl = null;
+        $attachmentType = null;
+
+        if ($attachment) {
+            $path = $attachment->store('chat_attachments', 'public');
+            $attachmentUrl = asset('storage/' . $path);
+            
+            $mime = $attachment->getMimeType();
+            if (str_starts_with($mime, 'image/')) {
+                $attachmentType = 'image';
+            } else {
+                $attachmentType = 'document';
+            }
+        }
+
+        // 2. Create Message in DB
         $newMessage = $this->chatMessageRepo->createMessage([
             'chat_room_id' => $roomId,
             'sender_id' => $csUser->id,
             'sender_type' => 'user',
-            'message_content' => $messageBody
+            'message_content' => $messageBody,
+            'attachment_url' => $attachmentUrl,
+            'attachment_type' => $attachmentType,
         ]);
 
         if ($room->status == 'new') {
             $this->chatRoomRepo->updateRoomStatus($roomId, 'open');
         }
 
+        // 3. Send to WhatsApp
         try {
             $waServiceUrl = rtrim(config('services.whatsapp.url'), '/');
             $waServiceApiKey = config('services.whatsapp.api_key');
             $clientId = 'official_business';
             $customerPhone = $room->customer->phone;
+
+            // Jika ada attachment, kirim sebagai media (jika API support) atau kirim link
+            // Untuk saat ini kita kirim link di dalam text jika ada attachment
+            $finalText = $messageBody;
+            if ($attachmentUrl) {
+                $finalText .= "\n\n[Attachment]: " . $attachmentUrl;
+            }
 
             $response = Http::withHeaders([
                 'x-api-key' => $waServiceApiKey,
@@ -116,7 +174,7 @@ class ChatService
             ])->post("{$waServiceUrl}/messages", [
                 'clientId' => $clientId,
                 'to' => $customerPhone,
-                'text' => $messageBody,
+                'text' => $finalText,
             ]);
 
             if ($response->failed()) {
@@ -132,6 +190,16 @@ class ChatService
             throw $e;
         }
 
+        // PENTING: Touch room agar updated_at terupdate untuk Long Polling
+        $room->update(['updated_at' => now()]);
+
+        // Broadcast update list juga saat kirim pesan keluar
+        try {
+            broadcast(new \App\Domains\Chat\Events\ChatListUpdated($room));
+        } catch (\Exception $e) {
+            Log::error('Broadcast List Update error: ' . $e->getMessage());
+        }
+
         return $newMessage;
     }
 
@@ -141,15 +209,16 @@ class ChatService
      */
     public function assignCsToNewRoom()
     {
-        // 1. Ambil semua ID CS yang aktif.
+        // 1. Ambil semua ID CS yang aktif dan ONLINE
         // Kita cache daftar ini selama 10 menit agar tidak query terus-menerus
-        $csUserIds = Cache::remember('active_cs_user_ids', 600, function () {
-            return User::where('role', 'cs') //
-                // TODO: Tambahkan filter status 'aktif' jika ada
-                ->orderBy('id', 'asc')
-                ->pluck('id')
-                ->all();
-        });
+        // Note: Cache key dibedakan agar refresh saat ada perubahan status (ideally cache di-clear saat toggle)
+        // Untuk simpelnya, kita kurangi durasi cache atau hapus cache saat toggle (di controller)
+        // Di sini kita query langsung dulu untuk akurasi real-time
+        $csUserIds = User::where('role', 'cs')
+            ->where('is_online', true)
+            ->orderBy('id', 'asc')
+            ->pluck('id')
+            ->all();
 
         if (empty($csUserIds)) {
             Log::warning('Tidak ada CS yang terdaftar untuk menerima chat baru.');

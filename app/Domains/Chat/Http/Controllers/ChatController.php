@@ -50,23 +50,34 @@ class ChatController extends Controller
     }
 
     /**
-     * [HALAMAN APLIKASI] UI Chat 3 Kolom
-     * URL: /app/chat/ui
-     */
-    /**
-     * [HALAMAN APLIKASI] UI Chat 3 Kolom
+     * [HALAMAN APLIKASI] UI Chat 3 Kolom (Unified Dashboard)
      * URL: /app/chat/ui
      */
     public function showChatUI()
     {
-        // Ambil semua room + pesan terakhir + data customer
-        $rooms = \App\Domains\Chat\Models\ChatRoom::with(['customer', 'messages' => function($q) {
-                        $q->latest()->limit(1);
-                    }])
+        $csUser = Auth::user();
+        
+        // Ambil semua room untuk sidebar kiri
+        $rooms = \App\Domains\Chat\Models\ChatRoom::with(['customer', 'latestMessage'])
+                    // [MODIFIKASI] Tampilkan SEMUA room untuk sementara agar CS bisa melihat semua chat
+                    // Idealnya nanti ada filter "My Chats" vs "All Chats"
+                    /*
+                    ->where(function($q) use ($csUser) {
+                        $q->where('cs_user_id', $csUser->id)
+                          ->orWhereNull('cs_user_id');
+                    })
+                    */
+                    // Order by latest message created_at, fallback to updated_at
+                    ->orderByDesc(
+                        \App\Domains\Chat\Models\ChatMessage::select('created_at')
+                            ->whereColumn('chat_room_id', 'chat_rooms.id')
+                            ->latest()
+                            ->limit(1)
+                    )
                     ->orderBy('updated_at', 'desc')
                     ->get();
 
-        // Cek Status WA
+        // Cek Status WA (untuk indikator di UI)
         $isConnected = false;
         try {
             $waUrl = rtrim(config('services.whatsapp.url'), '/');
@@ -77,41 +88,134 @@ class ChatController extends Controller
                 $response = \Illuminate\Support\Facades\Http::withHeaders([
                     'x-api-key' => $apiKey,
                     'Accept' => 'application/json',
-                ])->timeout(5)->get("{$waUrl}/accounts");
+                ])->timeout(2)->get("{$waUrl}/accounts");
 
                 if ($response->successful()) {
                     $data = $response->json()['data'] ?? [];
                     $account = collect($data)->firstWhere('clientId', $clientId);
-                    // Status dari WA Service biasanya 'READY' saat terhubung
                     if ($account && in_array(($account['status'] ?? ''), ['CONNECTED', 'READY'])) {
                         $isConnected = true;
                     }
                 }
             }
         } catch (\Exception $e) {
-            Log::error('Gagal cek status WA di ChatController: ' . $e->getMessage());
+            // Ignore error for UI check
         }
 
-        return view('pages.chat.index', compact('rooms', 'isConnected'));
+        return view('pages.chat.ui', compact('rooms', 'isConnected'));
     }
 
-    /**
-     * [AJAX] Ambil data chat room spesifik
-     */
-    public function getRoomData(int $roomId)
+    public function getRooms(Request $request)
     {
-        $room = \App\Domains\Chat\Models\ChatRoom::with('customer')->find($roomId);
+        $clientLastUpdated = $request->query('last_updated_at', 0);
+        $clientLastGlobalMsgId = $request->query('last_global_msg_id', 0);
+        
+        $startTime = time();
 
-        if (!$room) {
-            return response()->json(['error' => 'Room not found'], 404);
+        // [OPTIMISASI] Tutup sesi agar tidak memblokir request lain (AJAX send message, dll)
+        session_write_close();
+        
+        // 1. Cek timestamp terbaru di DB
+        $latestRoom = \App\Domains\Chat\Models\ChatRoom::latest('updated_at')->first();
+        $serverLastUpdated = $latestRoom ? $latestRoom->updated_at->timestamp : 0;
+
+        // 1b. Cek ID pesan terakhir secara global (lebih akurat daripada timestamp detik)
+        $serverLastGlobalMsgId = \App\Domains\Chat\Models\ChatMessage::max('id') ?? 0;
+
+        // 2. Jika ada update baru (timestamp berubah ATAU ada pesan baru)
+        if ($serverLastUpdated > $clientLastUpdated || $serverLastGlobalMsgId > $clientLastGlobalMsgId) {
+            $rooms = \App\Domains\Chat\Models\ChatRoom::with(['customer', 'latestMessage'])
+                        ->orderByDesc(
+                            \App\Domains\Chat\Models\ChatMessage::select('created_at')
+                                ->whereColumn('chat_room_id', 'chat_rooms.id')
+                                ->latest()
+                                ->limit(1)
+                        )
+                        ->orderBy('updated_at', 'desc')
+                        ->get()
+                        ->map(function($room) {
+                            return [
+                                'id' => $room->id,
+                                'updated_at' => $room->updated_at,
+                                'updated_ts' => $room->updated_at->timestamp, // Kirim timestamp
+                                'status' => $room->status,
+                                'customer' => [
+                                    'name' => $room->customer->name ?? 'Guest',
+                                    'phone' => $room->customer->phone,
+                                ],
+                                'latest_message' => $room->latestMessage ? [
+                                    'message_content' => $room->latestMessage->message_content,
+                                    'created_at' => $room->latestMessage->created_at,
+                                ] : null,
+                            ];
+                        });
+
+            return response()->json([
+                'rooms' => $rooms,
+                'last_updated_at' => $serverLastUpdated,
+                'last_global_msg_id' => $serverLastGlobalMsgId
+            ]);
         }
 
-        $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
+        // 3. Jika tidak ada update, return kosong (Short Polling)
+        return response()->json(['status' => 'no_update']);
+    }
 
-        return response()->json([
-            'room' => $room,
-            'messages' => $messages
-        ]);
+    public function getRoomData(Request $request, int $roomId)
+    {
+        $clientLastMsgId = $request->query('last_message_id', 0);
+        $startTime = time();
+        
+        // Jika request biasa (bukan polling), tidak perlu loop
+        $isPolling = $request->has('polling');
+
+
+
+        // [OPTIMISASI] Tutup sesi agar tidak memblokir request lain
+        session_write_close();
+
+        $room = \App\Domains\Chat\Models\ChatRoom::with('customer')->find($roomId);
+        if (!$room) return response()->json(['error' => 'Room not found'], 404);
+
+        // Cek pesan terakhir
+        $lastMsg = $this->chatMessageRepo->getMessagesForRoom($roomId)->last();
+        $serverLastMsgId = $lastMsg ? $lastMsg->id : 0;
+
+        // Jika ada pesan baru atau bukan polling (load awal)
+        if (!$isPolling || $serverLastMsgId > $clientLastMsgId) {
+            
+            // Ambil pesan
+            $messages = $this->chatMessageRepo->getMessagesForRoom($roomId);
+            
+            // Ambil Order History (Limit 5 terakhir)
+            $orders = [];
+            if ($room->customer) {
+                $orders = \App\Domains\Order\Models\Order::where('customer_id', $room->customer->id)
+                            ->orderBy('created_at', 'desc')
+                            ->limit(5)
+                            ->get()
+                            ->map(function($order) {
+                                return [
+                                    'id' => $order->id,
+                                    'order_number' => $order->order_number ?? ('#' . $order->id),
+                                    'total_amount' => number_format($order->total_amount, 0, ',', '.'),
+                                    'status' => $order->status,
+                                    'date' => $order->created_at->format('d M Y'),
+                                    'items_count' => $order->items()->count()
+                                ];
+                            });
+            }
+
+            return response()->json([
+                'room' => $room,
+                'messages' => $messages,
+                'orders' => $orders,
+                'last_message_id' => $serverLastMsgId
+            ]);
+        }
+
+        // Short Polling: Return no update immediately
+        return response()->json(['status' => 'no_update']);
     }
 
     /**
@@ -119,11 +223,25 @@ class ChatController extends Controller
      */
     public function storeAjaxMessage(Request $request, int $roomId)
     {
-        $request->validate(['message_body' => 'required|string']);
+        $request->validate([
+            'message_body' => 'nullable|string',
+            'attachment' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx', // Max 10MB
+        ]);
+
+        // Pastikan ada pesan atau attachment
+        if (!$request->message_body && !$request->hasFile('attachment')) {
+            return response()->json(['error' => 'Pesan atau lampiran harus diisi'], 422);
+        }
+
         $csUser = Auth::user();
 
+        if (!$csUser instanceof \App\Models\User) {
+            return response()->json(['error' => 'Unauthorized or invalid user type'], 401);
+        }
+
         try {
-            $message = $this->chatService->sendOutboundMessage($csUser, $roomId, $request->message_body);
+            $attachment = $request->file('attachment');
+            $message = $this->chatService->sendOutboundMessage($csUser, $roomId, $request->message_body ?? '', $attachment);
             
             return response()->json([
                 'success' => true,

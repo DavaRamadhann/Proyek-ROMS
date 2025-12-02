@@ -14,7 +14,6 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-// --- GRUP AUTH CONTROLLERS (Handle Login, Register, Logout, etc.) ---
 Route::controller(AuthControllers::class)->group(function () {
     
     // Rute untuk Tamu (Guest)
@@ -62,11 +61,57 @@ Route::controller(AuthControllers::class)->group(function () {
 Route::middleware(['auth'])->group(function () {
     
     // Rute Dashboard
-    // (Saya pakai versi pertama dari kode Anda, yang meneruskan $user)
     Route::get('/dashboard', function () {
         $user = Auth::user();
         return view('dashboard', compact('user'));
     })->name('dashboard');
+
+    // ======================================================
+    // ADMIN CS MANAGEMENT ROUTES
+    // ======================================================
+    Route::middleware('role:admin')->prefix('admin')->group(function () {
+        Route::resource('cs', \App\Http\Controllers\Admin\CSController::class)->names([
+            'index' => 'admin.cs.index',
+            'create' => 'admin.cs.create',
+            'store' => 'admin.cs.store',
+            'edit' => 'admin.cs.edit',
+            'update' => 'admin.cs.update',
+            'destroy' => 'admin.cs.destroy',
+        ]);
+        // Existing WhatsApp API routes
+        Route::get('/whatsapp/api/status', [WhatsAppConnectionController::class, 'getStatus'])
+            ->name('admin.whatsapp.api.status');
+        Route::get('/whatsapp/api/qr', [WhatsAppConnectionController::class, 'getQrCode'])
+            ->name('admin.whatsapp.api.qr');
+        Route::post('/whatsapp/api/reconnect', [WhatsAppConnectionController::class, 'requestReconnect'])
+            ->name('admin.whatsapp.api.reconnect');
+
+        // **New route for the QR‑code page (admin UI)**
+        Route::get('/whatsapp/scan', [WhatsAppConnectionController::class, 'index'])
+            ->name('whatsapp.scan');
+
+        // Laporan Bisnis (Epik 1.5)
+        Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])
+            ->name('admin.reports.index');
+
+        // Integrasi API (Epik 1.4 Docs)
+        Route::get('/api-integration', [\App\Http\Controllers\Admin\ApiIntegrationController::class, 'index'])
+            ->name('admin.api.index');
+
+        // Manajemen Template Pesan (Epik 1.2)
+        Route::resource('templates', \App\Http\Controllers\Admin\MessageTemplateController::class)
+            ->names('admin.templates');
+    });
+
+    // ======================================================
+    // CS DASHBOARD ROUTE
+    // ======================================================
+    Route::middleware(['role:cs'])->group(function () {
+        Route::get('/cs/dashboard', [\App\Http\Controllers\CS\CSDashboardController::class, 'index'])->name('cs.dashboard');
+        
+        // Toggle Status
+        Route::post('/cs/status/toggle', [\App\Http\Controllers\CS\CsStatusController::class, 'toggle'])->name('cs.status.toggle');
+    });
 
     // ======================================================
     // BLOK KODE DOMAIN CHAT (DIGABUNGKAN KE SINI)
@@ -97,15 +142,16 @@ Route::middleware(['auth'])->group(function () {
         // Muat Rute Domain Automation (Otomasi)
         require __DIR__.'/../app/Domains/Automation/routes/web.php';
 
-        // Muat Rute Domain Event (Acara)
-        require __DIR__.'/../app/Domains/Event/routes/web.php';
+
+
+        // Muat Rute Domain Broadcast (Otomasi Pesan)
+        require __DIR__.'/../app/Domains/Broadcast/routes/web.php';
 
     });
     // --- AKHIR DARI BLOK KODE BARU ---
 
     
     // Test Supabase Connection (opsional)
-    // Saya letakkan di dalam auth group agar terlindungi
     Route::get('/test-supabase', function () {
         try {
             $pdo = DB::connection()->getPdo();
@@ -130,16 +176,8 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['web'])->group(function () {
     
-    // 1. Halaman Dashboard & Views
-    Route::get('/cs/dashboard', [ChatController::class, 'index'])->name('chat.dashboard');
-
-    // Halaman Chat Utama
-    Route::get('/cs/chat', [ChatController::class, 'showChatUI'])->name('chat.index');
-
-    // Halaman Scan QR WhatsApp
-    Route::get('/cs/whatsapp/scan', [WhatsAppConnectionController::class, 'index'])->name('whatsapp.scan');
-
     // 2. AJAX Endpoints untuk Chatting (PENTING!)
+    Route::get('/chat/rooms', [ChatController::class, 'getRooms']); // Polling List
     Route::get('/chat/room/{roomId}/data', [ChatController::class, 'getRoomData']); // Load pesan
     Route::post('/chat/room/{roomId}/send-ajax', [ChatController::class, 'storeAjaxMessage']); // Kirim pesan
 

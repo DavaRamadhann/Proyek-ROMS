@@ -102,7 +102,7 @@
 
     <aside class="main-sidebar">
         
-        <a href="{{ route('chat.dashboard') }}" class="logo">ROMS (CS)</a>
+        <a href="{{ route('cs.dashboard') }}" class="logo">ROMS (CS)</a>
 
         <div class="user-profile">
             <div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 2)) }}</div> <div>
@@ -119,7 +119,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('cs/dashboard') ? 'active' : '' }}" href="{{ route('chat.dashboard') }}">
+                <a class="nav-link {{ request()->is('cs/dashboard') ? 'active' : '' }}" href="{{ route('cs.dashboard') }}">
                     <i class="bi bi-speedometer2"></i> Beranda CS
                 </a>
             </li>
@@ -134,12 +134,12 @@
 
             {{-- Service Menu --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.index') }}">
+                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.ui') }}">
                     <i class="bi bi-chat-dots-fill"></i> Chat
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('cs/obrolan*') ? 'active' : '' }}" href="{{ route('cs.obrolan') }}">
+                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.ui') }}">
                     <i class="bi bi-chat-text-fill"></i> Obrolan
                 </a>
             </li>
@@ -153,12 +153,12 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/customers*') || request()->is('cs/pelanggan*') ? 'active' : '' }}" href="{{ route('customer.index') }}">
+                <a class="nav-link {{ request()->is('app/customers*') || request()->is('cs/pelanggan*') ? 'active' : '' }}" href="{{ route('customers.index') }}">
                     <i class="bi bi-people-fill"></i> Pelanggan
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/orders*') || request()->is('cs/pesanan*') ? 'active' : '' }}" href="{{ route('order.index') }}">
+                <a class="nav-link {{ request()->is('app/orders*') || request()->is('cs/pesanan*') ? 'active' : '' }}" href="{{ route('orders.index') }}">
                     <i class="bi bi-receipt-cutoff"></i> Pesanan
                 </a>
             </li>

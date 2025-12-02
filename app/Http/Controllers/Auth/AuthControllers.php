@@ -80,6 +80,15 @@ class AuthControllers extends Controller
             }
             
             $request->session()->regenerate();
+            
+            // Redirect berdasarkan role
+            if ($user->isAdmin()) {
+                return redirect()->intended('dashboard')->with('success', 'Login berhasil!');
+            } elseif ($user->isCS()) {
+                return redirect()->intended('cs/dashboard')->with('success', 'Login berhasil!');
+            }
+            
+            // Fallback untuk role lain (jika ada)
             return redirect()->intended('dashboard')->with('success', 'Login berhasil!');
         }
 

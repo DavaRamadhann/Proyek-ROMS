@@ -291,13 +291,216 @@
                     </form>
                 </div>
             </div>
+```html
+    .wa-header-main {
+        height: 60px;
+        background: #f0f2f5;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #d1d7db;
+        z-index: 10;
+    }
+
+    .wa-messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 5%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Bubble Chat */
+    .msg-row { display: flex; margin-bottom: 8px; }
+    .msg-row.outgoing { justify-content: flex-end; }
+    .msg-row.incoming { justify-content: flex-start; }
+
+    .msg-bubble {
+        max-width: 65%;
+        padding: 6px 10px 8px 10px;
+        border-radius: 8px;
+        position: relative;
+        font-size: 14px;
+        line-height: 19px;
+        box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+    }
+
+    .msg-bubble.in { background: #fff; border-top-left-radius: 0; }
+    .msg-bubble.out { background: #d9fdd3; border-top-right-radius: 0; }
+
+    .msg-time {
+        display: block;
+        text-align: right;
+        margin-top: 4px;
+        font-size: 10px; color: #667781;
+    }
+    .msg-time i { margin-left: 4px; }
+
+    /* Footer Input */
+    .wa-footer {
+        min-height: 62px;
+        background: #f0f2f5;
+        padding: 10px 16px;
+        display: flex; align-items: center; gap: 10px;
+        z-index: 10;
+    }
+    .wa-input {
+        flex: 1;
+        border: none; border-radius: 8px;
+        padding: 10px 12px; font-size: 15px;
+        outline: none;
+    }
+
+    /* Utils */
+    .d-none { display: none !important; }
+    .placeholder-screen {
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        height: 100%; text-align: center; color: #41525d;
+        background: #f0f2f5; border-bottom: 6px solid #25d366;
+    }
+</style>
+
+@section('content')
+
+{{-- WRAPPER UTAMA (FULL SCREEN) --}}
+<div class="wa-fullscreen-wrapper">
+    
+    {{-- 1. PANEL KONEKSI --}}
+    <div id="connection-panel" class="card shadow-lg border-0 p-4 align-self-center d-none" style="width: 400px;">
+        <div class="text-center">
+            <h4 class="mb-3">Koneksi WhatsApp</h4>
+            
+            <div id="qr-wrapper" class="d-none mb-3">
+                <div id="qrcode" class="d-flex justify-content-center"></div>
+                <small class="text-muted mt-2 d-block">Scan QR di Menu > Perangkat Tertaut</small>
+            </div>
+
+            <div id="loading-wrapper" class="my-3">
+                <div class="spinner-border text-success mb-2" role="status"></div>
+                <p class="text-muted small" id="loading-text">Memeriksa status...</p>
+            </div>
+
+            <span id="status-badge" class="badge bg-secondary">...</span>
+        </div>
+    </div>
+
+    {{-- 2. INTERFACE CHAT --}}
+    <div id="chat-interface" class="wa-container d-none">
+        
+        {{-- SIDEBAR --}}
+        <div class="wa-sidebar">
+            <div class="wa-header-left">
+                <div class="d-flex align-items-center">
+                    <div class="avatar-circle bg-secondary me-2" style="width:40px;height:40px;font-size:14px;">CS</div>
+                    <span class="fw-bold">Chat</span>
+                </div>
+                <div>
+                    <i class="bi bi-three-dots-vertical text-secondary"></i>
+                </div>
+            </div>
+
+            {{-- LIST ROOM --}}
+            <div class="wa-chat-list">
+                @forelse ($rooms as $room)
+                    <div class="chat-item" onclick="openChat({{ $room->id }}, this)">
+                        <div class="avatar-circle" style="background-color: {{ $loop->iteration % 2 == 0 ? '#009688' : '#3f51b5' }}">
+                            {{ strtoupper(substr($room->customer->name ?? 'G', 0, 1)) }}
+                        </div>
+                        <div class="chat-info">
+                            <div class="d-flex justify-content-between">
+                                <div class="chat-name fw-bold">
+                                    @php
+                                        $rawName = $room->customer->name ?? 'Guest';
+                                        $phone = $room->customer->phone ?? '-';
+                                        $displayName = $rawName;
+                                        if (str_contains($rawName, '@c.us') || str_contains($rawName, '@g.us')) {
+                                            $displayName = $phone;
+                                        }
+                                    @endphp
+                                    {{ $displayName }}
+                                </div>
+                                <div class="chat-meta">{{ $room->updated_at->format('H:i') }}</div>
+                            </div>
+                            {{-- ADDED: Phone Number Display --}}
+                            <div class="small text-muted mb-1" style="font-size: 11px;">{{ $phone }}</div>
+
+                            <div class="chat-preview">
+                                @if($room->messages->last())
+                                    @if($room->messages->last()->sender_type == 'user')
+                                        <i class="bi bi-check2 text-secondary"></i>
+                                    @endif
+                                    {{ Str::limit($room->messages->last()->message_content, 30) }}
+                                @else
+                                    <span class="fst-italic text-muted">Belum ada pesan</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="p-4 text-center text-muted small">Belum ada chat.</div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- MAIN AREA --}}
+        <div class="wa-main">
+            {{-- Placeholder --}}
+            <div id="view-placeholder" class="placeholder-screen">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/6b/WhatsApp.svg/150px-WhatsApp.svg.png" width="80" class="mb-4 opacity-50">
+                <h3>WhatsApp for ROMS</h3>
+                <p>Kirim dan terima pesan tanpa perlu buka HP.<br>Pilih chat di sebelah kiri untuk mulai.</p>
+            </div>
+
+            {{-- Chat View --}}
+            <div id="view-chat" class="d-none flex-column h-100">
+                {{-- Header --}}
+                <div class="wa-header-main">
+                    <div class="avatar-circle me-3" id="chat-avatar" style="width:40px;height:40px;font-size:16px;">U</div>
+                    <div class="d-flex flex-column">
+                        <span class="fw-bold" id="chat-name">Nama User</span>
+                        <small class="text-muted" id="chat-phone">+62...</small>
+                    </div>
+                </div>
+
+                {{-- Bubble Messages --}}
+                <div class="wa-messages-container" id="messages-box">
+                    {{-- Pesan akan di-inject via JS --}}
+                </div>
+
+                {{-- Input --}}
+                <div class="wa-footer">
+                    <i class="bi bi-emoji-smile fs-4 text-secondary" style="cursor:pointer"></i>
+                    <i class="bi bi-paperclip fs-4 text-secondary mx-2" style="cursor:pointer"></i>
+                    
+                    <form id="form-send" class="d-flex flex-grow-1" onsubmit="sendMessage(event)">
+                        <input type="hidden" id="room-id-active">
+                        <textarea id="input-message" class="wa-input" rows="1" placeholder="Ketik pesan" style="resize:none; overflow-y:hidden;"></textarea>
+                        <button type="submit" class="btn p-0 ms-3 border-0 bg-transparent">
+                            <i class="bi bi-send-fill fs-4 text-secondary"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
 
     </div>
 </div>
 
-{{-- SCRIPT LOGIKA --}}
+@push('scripts')
+    <script src="{{ asset('assets/js/qrcode.min.js') }}"></script>
 <script>
+    console.log(">>> SCRIPT LOADED <<<"); // Global Debug
+
+    // Create indicator immediately
+    (function() {
+        const indicator = document.createElement('div');
+        indicator.id = 'polling-indicator';
+        indicator.style.cssText = 'position:fixed; top:10px; right:10px; font-size:12px; color:white; background:red; z-index:9999; padding:5px; border-radius:4px; font-weight:bold;';
+        indicator.textContent = 'JS ACTIVE';
+        document.body.appendChild(indicator);
+    })();
+
     const URLS = {
         status: "{{ route('admin.whatsapp.api.status') }}",
         qr: "{{ route('admin.whatsapp.api.qr') }}",
@@ -313,6 +516,7 @@
     let pollingChatInterval = null;
 
     document.addEventListener('DOMContentLoaded', () => {
+        console.log("DOM LOADED");
         checkConnection();
         setInterval(checkConnection, 5000); 
     });
@@ -397,8 +601,6 @@
         await fetchMessages(roomId);
 
         // Set Header
-        // Note: We need to get the name from the clicked element or data
-        // The element has .chat-name inside it
         const nameEl = el.querySelector('.chat-name');
         const name = nameEl ? nameEl.textContent.trim() : 'User';
         document.getElementById('chat-name').textContent = name;
@@ -408,53 +610,23 @@
         document.getElementById('chat-avatar').style.backgroundColor = avatarBg;
 
         if (pollingChatInterval) clearInterval(pollingChatInterval);
-        pollingChatInterval = setInterval(() => fetchMessages(roomId), 5000); 
-
-        // --- REALTIME LISTENER ---
-        if (window.Echo) {
-            console.log("Listening to channel: chat-room." + roomId);
-            Echo.private('chat-room.' + roomId)
-                .listen('.new-message', (e) => {
-                    console.log("New message received:", e);
-                    if (activeRoomId == roomId) {
-                        const msg = e.message;
-                        const isMe = msg.sender_type === 'user';
-                        const align = isMe ? 'outgoing' : 'incoming';
-                        const bubble = isMe ? 'out' : 'in';
-                        const time = new Date(msg.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                        const check = isMe ? '<i class="bi bi-check2-all text-primary ms-1"></i>' : '';
-
-                        const html = `
-                            <div class="msg-row ${align}">
-                                <div class="msg-bubble ${bubble}">
-                                    ${msg.message_content}
-                                    <div class="msg-time">
-                                        ${time} ${check}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        
-                        const container = document.getElementById('messages-box');
-                        const isUserAtBottom = (container.scrollHeight - container.scrollTop) <= (container.clientHeight + 150);
-                        
-                        container.insertAdjacentHTML('beforeend', html);
-                        
-                        if (isUserAtBottom || isMe) {
-                            container.scrollTop = container.scrollHeight;
-                        }
-                    }
-                });
-        } else {
-            console.warn("Echo not found. Realtime disabled.");
-        }
+        pollingChatInterval = setInterval(() => fetchMessages(roomId), 3000); 
     }
 
     async function fetchMessages(roomId) {
+        console.log("Polling messages for room:", roomId, "at", new Date().toLocaleTimeString()); // Debugging
+        
+        const indicator = document.getElementById('polling-indicator');
+        if (indicator) {
+            indicator.style.background = 'green';
+            indicator.textContent = 'Polling: ' + new Date().toLocaleTimeString();
+        }
+
         if (activeRoomId != roomId) return; 
 
         try {
-            const url = URLS.getChat.replace(':id', roomId);
+            // Add timestamp to prevent caching
+            const url = URLS.getChat.replace(':id', roomId) + '?t=' + new Date().getTime();
             const res = await fetch(url);
             
             if (!res.ok) throw new Error("Gagal load chat");
@@ -466,6 +638,7 @@
 
         } catch (e) {
             console.error(e);
+            if (indicator) indicator.style.background = 'red';
         }
     }
 
@@ -606,4 +779,6 @@
         }, 2000);
     }
 </script>
+@endpush
 @endsection
+```

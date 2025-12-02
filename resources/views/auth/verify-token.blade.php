@@ -315,7 +315,15 @@
         BAGIAN HTML (KONTEN)
         =================================================
         --}}
-        <form method="GET" action="/reset-password" id="verifyForm">
+        @php
+            $route = '#';
+            if(isset($verificationType)) {
+                if($verificationType == 'register') $route = route('verification.verify');
+                elseif($verificationType == 'reset_password') $route = route('password.verify');
+                elseif($verificationType == 'google') $route = route('verification.google.verify');
+            }
+        @endphp
+        <form method="POST" action="{{ $route }}" id="verifyForm">
             @csrf
             <div class="mb-3">
                 <label for="code-1" class="form-label">Kode Verifikasi</label>
@@ -345,7 +353,15 @@
 
         <div class="resend-section">
             <p class="resend-text">Tidak menerima kode?</p>
-            <form method="POST" action="#" style="display: inline;">
+            @php
+                $resendRoute = '#';
+                if(isset($verificationType)) {
+                    if($verificationType == 'register') $resendRoute = route('verification.resend');
+                    elseif($verificationType == 'reset_password') $resendRoute = route('password.resend');
+                    elseif($verificationType == 'google') $resendRoute = route('verification.google.resend');
+                }
+            @endphp
+            <form method="POST" action="{{ $resendRoute }}" style="display: inline;">
                 @csrf
                 <button type="submit" class="btn btn-resend">
                     🔄 Kirim Ulang Kode

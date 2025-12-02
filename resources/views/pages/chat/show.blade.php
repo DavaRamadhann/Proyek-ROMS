@@ -118,7 +118,7 @@
                         <small class="text-muted">{{ $phone }}</small>
                     </div>
                 </div>
-                <a href="{{ route('chat.index') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ route('chat.ui') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-x-lg"></i>
                 </a>
             </div>
@@ -172,109 +172,5 @@
 @endsection
 
 @push('scripts')
-<script>
-    const roomId = document.getElementById('room-id').value;
-    const messagesBox = document.getElementById('messages-box');
-    const inputMessage = document.getElementById('input-message');
-    
-    // Scroll to bottom on load
-    messagesBox.scrollTop = messagesBox.scrollHeight;
-
-    // --- REALTIME LISTENER (ECHO) ---
-    document.addEventListener('DOMContentLoaded', () => {
-        if (window.Echo) {
-            console.log("Listening to channel: chat-room." + roomId);
-            Echo.private('chat-room.' + roomId)
-                .listen('.new-message', (e) => {
-                    console.log("New message:", e);
-                    appendMessage(e.message);
-                });
-        } else {
-            console.warn("Echo not loaded. Check @@vite directive.");
-        }
-    });
-
-    // --- SEND MESSAGE ---
-    async function sendMessage() {
-        const text = inputMessage.value.trim();
-        if (!text) return;
-
-        // Optimistic UI
-        const tempId = Date.now();
-        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        
-        const tempHtml = `
-            <div class="msg-row outgoing" id="msg-${tempId}">
-                <div class="msg-bubble out opacity-75">
-                    ${text.replace(/\n/g, '<br>')}
-                    <div class="msg-time">${time} <i class="bi bi-clock ms-1"></i></div>
-                </div>
-            </div>
-        `;
-        messagesBox.insertAdjacentHTML('beforeend', tempHtml);
-        messagesBox.scrollTop = messagesBox.scrollHeight;
-        inputMessage.value = '';
-        inputMessage.style.height = 'auto'; // Reset height
-
-        try {
-            const response = await axios.post(`/chat/room/${roomId}/send-ajax`, {
-                message_body: text
-            });
-
-            if (response.data.success) {
-                // Update icon to checkmark
-                const msgEl = document.getElementById(`msg-${tempId}`);
-                if(msgEl) {
-                    msgEl.querySelector('.bi-clock').className = 'bi bi-check2-all text-primary ms-1';
-                    msgEl.querySelector('.msg-bubble').classList.remove('opacity-75');
-                }
-            }
-        } catch (error) {
-            console.error(error);
-            alert('Gagal mengirim pesan');
-            document.getElementById(`msg-${tempId}`).remove();
-            inputMessage.value = text; // Restore text
-        }
-    }
-
-    // --- APPEND MESSAGE FUNCTION ---
-    function appendMessage(msg) {
-        const isMe = msg.sender_type !== 'customer'; // Adjust logic if needed
-        const align = isMe ? 'outgoing' : 'incoming';
-        const bubble = isMe ? 'out' : 'in';
-        const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const check = isMe ? '<i class="bi bi-check2-all text-primary ms-1"></i>' : '';
-
-        const html = `
-            <div class="msg-row ${align}">
-                <div class="msg-bubble ${bubble}">
-                    ${msg.message_content.replace(/\n/g, '<br>')}
-                    <div class="msg-time">${time} ${check}</div>
-                </div>
-            </div>
-        `;
-        
-        // Check if user is near bottom
-        const isNearBottom = messagesBox.scrollHeight - messagesBox.scrollTop - messagesBox.clientHeight < 100;
-
-        messagesBox.insertAdjacentHTML('beforeend', html);
-
-        if (isNearBottom || isMe) {
-            messagesBox.scrollTop = messagesBox.scrollHeight;
-        }
-    }
-
-    // --- AUTO RESIZE & ENTER TO SEND ---
-    inputMessage.addEventListener('input', function() {
-        this.style.height = 'auto';
-        this.style.height = (this.scrollHeight) + 'px';
-    });
-
-    inputMessage.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@3.0.3/dist/index.min.js"></script>
 @endpush

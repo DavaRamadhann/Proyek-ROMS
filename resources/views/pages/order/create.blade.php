@@ -3,324 +3,223 @@
 @section('title', 'Buat Pesanan Baru')
 
 @section('content')
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #B45253 0%, #8d4142 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .breadcrumb-custom {
-        background: rgba(255,255,255,0.1);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .breadcrumb-custom .breadcrumb {
-        margin: 0;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item,
-    .breadcrumb-custom .breadcrumb-item a {
-        color: rgba(255,255,255,0.9);
-        font-size: 0.9rem;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item.active {
-        color: #fff;
-        font-weight: 500;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
-        color: rgba(255,255,255,0.6);
-    }
-    
-    .form-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        overflow: hidden;
-    }
-    
-    .form-card .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-bottom: 3px solid #B45253;
-        padding: 1.25rem 1.5rem;
-    }
-    
-    .form-card .card-body {
-        padding: 2rem;
-    }
-    
-    .form-label {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-    
-    .form-control, .form-select {
-        border-radius: 8px;
-        border: 2px solid #e9ecef;
-        padding: 0.625rem 1rem;
-        transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: #B45253;
-        box-shadow: 0 0 0 0.2rem rgba(180, 82, 83, 0.15);
-    }
-    
-    .table {
-        border-radius: 8px;
-        overflow: hidden;
-    }
-    
-    .table thead th {
-        background: linear-gradient(135deg, #B45253 0%, #8d4142 100%);
-        color: white;
-        font-weight: 600;
-        border: none;
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, #B45253 0%, #8d4142 100%);
-        border: none;
-        padding: 0.625rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(180, 82, 83, 0.3);
-    }
-    
-    .btn-secondary {
-        padding: 0.625rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-success {
-        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-        border: none;
-        border-radius: 8px;
-        padding: 0.5rem 1rem;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-success:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-    }
-    
-    .total-section {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 10px;
-        padding: 1.5rem;
-        border: 2px solid #B45253;
-    }
-    
-    @media (max-width: 768px) {
-        .page-header {
-            padding: 1.5rem;
-        }
-        
-        .form-card .card-body {
-            padding: 1.5rem;
-        }
-        
-        .table {
-            font-size: 0.85rem;
-        }
-    }
-</style>
-
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div class="text-white">
-            <h2 class="mb-2">
-                <i class="bi bi-cart-plus me-2"></i>Buat Pesanan Baru
-            </h2>
-            <p class="mb-0 opacity-75">Tambahkan pesanan baru dari pelanggan</p>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold text-dark">Buat Pesanan Baru</h2>
+        <p class="text-muted">Input manual pesanan dari pelanggan.</p>
     </div>
-    <div class="breadcrumb-custom mt-3">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('order.index') }}">Pesanan</a></li>
-                <li class="breadcrumb-item active">Buat Pesanan</li>
-            </ol>
-        </nav>
-    </div>
+    <a href="{{ route('orders.index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Kembali
+    </a>
 </div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-11">
-        <div class="card form-card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Form Pesanan Baru</h5>
-            </div>
-            <div class="card-body">
-                {{-- Tampilkan Error Validasi --}}
-                @if ($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
 
-                <form action="{{ route('order.store') }}" method="POST">
-                    @csrf
-                    
-                    {{-- Pilih Pelanggan --}}
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <ul class="mb-0 ps-3">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<form action="{{ route('orders.store') }}" method="POST" id="orderForm">
+    @csrf
+    <div class="row g-4">
+        <!-- Kolom Kiri: Info Pelanggan -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4">
+                    <h5 class="fw-bold mb-0" style="color: #84994F;">
+                        <i class="bi bi-person-circle me-2"></i>Informasi Pelanggan
+                    </h5>
+                </div>
+                <div class="card-body px-4">
                     <div class="mb-4">
-                        <label class="form-label">Pilih Pelanggan <span class="text-danger">*</span></label>
-                        <select name="customer_id" class="form-select" required>
+                        <label for="customer_id" class="form-label fw-semibold">Pilih Pelanggan</label>
+                        <select name="customer_id" id="customer_id" class="form-select form-select-lg" required>
                             <option value="">-- Cari Pelanggan --</option>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}">{{ $customer->name }} ({{ $customer->phone }})</option>
                             @endforeach
                         </select>
+                        <div class="form-text">Pastikan pelanggan sudah terdaftar.</div>
                     </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label fw-semibold">Catatan Pesanan</label>
+                        <textarea name="notes" id="notes" class="form-control" rows="4" placeholder="Contoh: Dikirim siang hari, bungkus kado, dll."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    {{-- Daftar Barang --}}
-                    <h5 class="fw-bold mb-3"><i class="bi bi-basket me-2"></i>Daftar Barang</h5>
-                    
+        <!-- Kolom Kanan: Item Pesanan -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0" style="color: #B45253;">
+                        <i class="bi bi-cart-fill me-2"></i>Item Pesanan
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-success text-white" id="addItemBtn" style="background-color: #84994F; border-color: #84994F;">
+                        <i class="bi bi-plus-circle me-1"></i> Tambah Item
+                    </button>
+                </div>
+                <div class="card-body px-4">
                     <div class="table-responsive">
-                        <table class="table table-bordered" id="items-table">
-                            <thead>
+                        <table class="table table-borderless align-middle" id="itemsTable">
+                            <thead class="text-muted border-bottom">
                                 <tr>
-                                    <th style="width: 40%">Produk</th>
-                                    <th style="width: 15%">Jumlah</th>
-                                    <th style="width: 25%">Harga Satuan (Rp)</th>
-                                    <th style="width: 15%">Subtotal</th>
-                                    <th style="width: 5%">Aksi</th>
+                                    <th width="40%">Produk</th>
+                                    <th width="20%">Harga (Rp)</th>
+                                    <th width="15%">Qty</th>
+                                    <th width="20%" class="text-end">Subtotal</th>
+                                    <th width="5%"></th>
                                 </tr>
                             </thead>
-                            <tbody id="items-body">
-                                {{-- Baris Pertama (Default) --}}
-                                <tr class="item-row">
-                                    <td>
-                                        <select name="items[0][product_id]" class="form-select product-select" required>
-                                            <option value="">-- Pilih Produk --</option>
-                                            @foreach($products as $product)
-                                                {{-- Kita simpan harga di data-attribute agar bisa diambil JS --}}
-                                                <option value="{{ $product->id }}">
-                                                    {{ $product->name }} ({{ $product->sku }})
-                                                </option>
-                                            @endforeach
-                                        </select>
+                            <tbody id="itemsContainer">
+                                <!-- Items will be added here via JS -->
+                            </tbody>
+                            <tfoot class="border-top">
+                                <tr>
+                                    <td colspan="3" class="text-end pt-4">
+                                        <span class="text-muted">Total Pembayaran:</span>
                                     </td>
-                                    <td>
-                                        <input type="number" name="items[0][quantity]" class="form-control quantity-input" value="1" min="1" required>
-                                    </td>
-                                    <td>
-                                        <input type="number" name="items[0][price]" class="form-control price-input" value="0" min="0" required>
-                                    </td>
-                                    <td>
-                                        <input type="text" class="form-control subtotal-display" value="0" readonly>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-danger btn-sm remove-row-btn" disabled>X</button>
+                                    <td colspan="2" class="pt-4 text-end">
+                                        <h4 class="fw-bold text-primary mb-0" id="grandTotal" style="color: #B45253 !important;">Rp 0</h4>
                                     </td>
                                 </tr>
-                            </tbody>
+                            </tfoot>
                         </table>
                     </div>
-
-                    <div class="d-flex justify-content-between align-items-center mb-4 mt-3">
-                        <button type="button" class="btn btn-success" id="add-row-btn">
-                            <i class="bi bi-plus-circle me-2"></i>Tambah Barang Lain
-                        </button>
-                        <div class="total-section">
-                            <h4 class="mb-0 text-center">Total: <span id="grand-total" class="text-danger">Rp 0</span></h4>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ route('order.index') }}" class="btn btn-secondary">
-                            <i class="bi bi-arrow-left me-2"></i>Batal
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-save me-2"></i>Simpan Pesanan
-                        </button>
-                    </div>
-                </form>
+                </div>
+                <div class="card-footer bg-white border-0 px-4 pb-4 text-end">
+                    <button type="submit" class="btn btn-primary btn-lg px-5" style="background-color: #B45253; border-color: #B45253; border-radius: 50px;">
+                        <i class="bi bi-save me-2"></i> Simpan Pesanan
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-</div>
+</form>
 
-{{-- Script JavaScript Sederhana --}}
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        let rowCount = 1;
-        const tableBody = document.getElementById('items-body');
-        const addBtn = document.getElementById('add-row-btn');
-        const grandTotalEl = document.getElementById('grand-total');
+<template id="itemRowTemplate">
+    <tr class="item-row border-bottom">
+        <td class="py-3">
+            <select name="items[{index}][product_name]" class="form-select product-select" required>
+                <option value="">-- Pilih Produk --</option>
+                @foreach($products as $product)
+                    <option value="{{ $product->name }}" data-price="{{ $product->price ?? 0 }}">
+                        {{ $product->name }}
+                    </option>
+                @endforeach
+                <option value="custom" class="fw-bold text-primary">+ Produk Custom</option>
+            </select>
+            <input type="text" name="items[{index}][product_name_custom]" class="form-control mt-2 d-none custom-product-input" placeholder="Nama produk custom...">
+        </td>
+        <td class="py-3">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">Rp</span>
+                <input type="number" name="items[{index}][price]" class="form-control price-input border-start-0 ps-1" min="0" value="0" required>
+            </div>
+        </td>
+        <td class="py-3">
+            <input type="number" name="items[{index}][quantity]" class="form-control qty-input text-center" min="1" value="1" required>
+        </td>
+        <td class="subtotal-display text-end fw-bold py-3" style="color: #555;">Rp 0</td>
+        <td class="text-end py-3">
+            <button type="button" class="btn btn-sm btn-outline-danger border-0 rounded-circle remove-item-btn" title="Hapus Item">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
 
-        // Fungsi Hitung Total
-        function calculateTotal() {
-            let total = 0;
-            document.querySelectorAll('.item-row').forEach(row => {
-                const qty = parseFloat(row.querySelector('.quantity-input').value) || 0;
-                const price = parseFloat(row.querySelector('.price-input').value) || 0;
-                const subtotal = qty * price;
-                
-                row.querySelector('.subtotal-display').value = subtotal.toLocaleString('id-ID');
-                total += subtotal;
-            });
-            grandTotalEl.textContent = 'Rp ' + total.toLocaleString('id-ID');
-        }
-
-        // Event Listener untuk Input (agar total otomatis update)
-        tableBody.addEventListener('input', function (e) {
-            if (e.target.classList.contains('quantity-input') || e.target.classList.contains('price-input')) {
-                calculateTotal();
-            }
-        });
-
-        // Tambah Baris Baru
-        addBtn.addEventListener('click', function () {
-            // Ambil baris pertama sebagai template
-            const firstRow = tableBody.querySelector('.item-row');
-            const newRow = firstRow.cloneNode(true);
-            
-            // Reset nilai input di baris baru
-            newRow.querySelectorAll('input').forEach(input => input.value = (input.name.includes('quantity') ? 1 : 0));
-            newRow.querySelector('.remove-row-btn').disabled = false; // Aktifkan tombol hapus
-
-            // Update nama input array index: items[0] -> items[1]
-            newRow.querySelectorAll('select, input').forEach(input => {
-                if (input.name) {
-                    input.name = input.name.replace(/\[\d+\]/, `[${rowCount}]`);
-                }
-            });
-
-            tableBody.appendChild(newRow);
-            rowCount++;
-            calculateTotal();
-        });
-
-        // Hapus Baris
-        tableBody.addEventListener('click', function (e) {
-            if (e.target.classList.contains('remove-row-btn')) {
-                e.target.closest('tr').remove();
-                calculateTotal();
-            }
-        });
-    });
-</script>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let itemIndex = 0;
+    const container = document.getElementById('itemsContainer');
+    const template = document.getElementById('itemRowTemplate').innerHTML;
+    const addItemBtn = document.getElementById('addItemBtn');
+    const grandTotalEl = document.getElementById('grandTotal');
+
+    function formatRupiah(amount) {
+        return 'Rp ' + new Intl.NumberFormat('id-ID').format(amount);
+    }
+
+    function calculateTotal() {
+        let total = 0;
+        document.querySelectorAll('#itemsContainer tr').forEach(row => {
+            const price = parseFloat(row.querySelector('.price-input').value) || 0;
+            const qty = parseInt(row.querySelector('.qty-input').value) || 0;
+            const subtotal = price * qty;
+            
+            row.querySelector('.subtotal-display').textContent = formatRupiah(subtotal);
+            total += subtotal;
+        });
+        grandTotalEl.textContent = formatRupiah(total);
+    }
+
+    function addItem() {
+        const html = template.replace(/{index}/g, itemIndex++);
+        container.insertAdjacentHTML('beforeend', html);
+        calculateTotal();
+    }
+
+    // Add initial item
+    addItem();
+
+    addItemBtn.addEventListener('click', addItem);
+
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-item-btn')) {
+            e.target.closest('tr').remove();
+            calculateTotal();
+        }
+    });
+
+    container.addEventListener('change', function(e) {
+        if (e.target.classList.contains('product-select')) {
+            const row = e.target.closest('tr');
+            const customInput = row.querySelector('.custom-product-input');
+            const priceInput = row.querySelector('.price-input');
+            
+            if (e.target.value === 'custom') {
+                customInput.classList.remove('d-none');
+                customInput.required = true;
+                e.target.removeAttribute('name'); // Don't submit select value
+                customInput.setAttribute('name', `items[${row.rowIndex - 1}][product_name]`);
+                priceInput.value = 0;
+            } else {
+                customInput.classList.add('d-none');
+                customInput.required = false;
+                customInput.removeAttribute('name');
+                e.target.setAttribute('name', `items[${row.rowIndex - 1}][product_name]`);
+                
+                // Set dummy price or fetch real price if available (currently 0 from option data)
+                // In a real app, you'd put the price in data-price attribute
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                // priceInput.value = selectedOption.dataset.price || 0; 
+            }
+            calculateTotal();
+        }
+    });
+
+    container.addEventListener('input', function(e) {
+        if (e.target.classList.contains('price-input') || e.target.classList.contains('qty-input')) {
+            calculateTotal();
+        }
+    });
+});
+</script>
+@endpush

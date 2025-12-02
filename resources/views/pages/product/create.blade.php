@@ -147,13 +147,27 @@
                         <small class="text-muted">Kode unik untuk setiap produk.</small>
                     </div>
 
-                    {{-- Jika database Anda punya kolom price, tambahkan input di sini --}}
-                    {{-- 
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="price" class="form-control" required placeholder="0">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stok Awal <span class="text-danger">*</span></label>
+                            <input type="number" name="stock" class="form-control" required placeholder="0">
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Harga</label>
-                        <input type="number" name="price" class="form-control">
-                    </div> 
-                    --}}
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rekomendasi Cross-sell (Opsional)</label>
+                        <textarea name="recommendation_text" class="form-control" rows="2" placeholder="Contoh: Cobain juga Kopi Robusta kami yang lebih strong!"></textarea>
+                        <small class="text-muted">Teks ini akan muncul otomatis di pesan reminder jika pelanggan membeli produk ini.</small>
+                    </div>
 
                     <div class="d-flex justify-content-between mt-4">
                         <a href="{{ route('product.index') }}" class="btn btn-secondary">Batal</a>

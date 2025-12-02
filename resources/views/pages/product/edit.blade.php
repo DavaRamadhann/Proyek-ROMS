@@ -142,9 +142,26 @@
                         <input type="text" name="name" class="form-control" value="{{ $product->name }}" required>
                     </div>
 
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
+                            <input type="number" name="price" class="form-control" value="{{ $product->price }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Stok <span class="text-danger">*</span></label>
+                            <input type="number" name="stock" class="form-control" value="{{ $product->stock }}" required>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label">SKU <span class="text-danger">*</span></label>
-                        <input type="text" name="sku" class="form-control" value="{{ $product->sku }}" required>
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="description" class="form-control" rows="3">{{ $product->description }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Rekomendasi Cross-sell (Opsional)</label>
+                        <textarea name="recommendation_text" class="form-control" rows="2">{{ $product->recommendation_text }}</textarea>
+                        <small class="text-muted">Teks ini akan muncul otomatis di pesan reminder jika pelanggan membeli produk ini.</small>
                     </div>
 
                     <div class="d-flex justify-content-between mt-4">

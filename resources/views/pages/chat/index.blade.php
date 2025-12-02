@@ -94,7 +94,7 @@
 <div class="card data-card border-0">
     <div class="card-body p-0">
         @forelse ($rooms as $room)
-            <a href="{{ route('chat.show', $room->id) }}" class="chat-item">
+            <a href="{{ route('chat.show', $room->id) }}" class="chat-item" id="chat-item-{{ $room->id }}">
                 <div class="d-flex w-100 justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <div class="d-flex align-items-center gap-3 mb-2">

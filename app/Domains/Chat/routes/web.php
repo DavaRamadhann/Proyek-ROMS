@@ -33,6 +33,9 @@ Route::group([], function () {
         ->name('chat.store');
 
     // 4. AJAX Endpoints (Data & Kirim Pesan)
+    Route::get('/chat/rooms', [ChatController::class, 'getRooms'])
+        ->name('chat.rooms');
+
     Route::get('/chat/room/{roomId}/data', [ChatController::class, 'getRoomData'])
         ->name('chat.room.data');
     

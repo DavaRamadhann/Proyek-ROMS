@@ -136,6 +136,67 @@ class WhatsAppConnectionController extends Controller
         }
     }
 
+    /**
+     * METHOD 4: Memulai sesi WhatsApp baru (Start).
+     * Akan memanggil: POST /accounts
+     */
+    /**
+     * METHOD 4: Memulai sesi WhatsApp baru (Start).
+     * Akan memanggil: POST /sessions (Updated from /accounts)
+     */
+    public function start(): JsonResponse
+    {
+        try {
+            // [FIX] Endpoint yang benar adalah /sessions, bukan /accounts
+            $url = "{$this->waServiceUrl}/sessions";
+            $response = $this->waClient()->post($url, [
+                'clientId' => $this->clientId
+            ]);
+
+            if ($response->failed()) {
+                // Jika gagal, coba reconnect siapa tahu sudah ada
+                if ($response->status() === 409) { // Conflict / Already exists
+                    return $this->requestReconnect();
+                }
+                
+                Log::error("WA Service Start Failed: {$response->status()} - {$response->body()}");
+                
+                return response()->json([
+                    'error' => 'Gagal memulai service WhatsApp (Upstream Error).',
+                    'details' => $response->json() ?? $response->body()
+                ], 502);
+            }
+
+            return response()->json(['success' => true, 'data' => $response->json()]);
+
+        } catch (\Exception $e) {
+            Log::error('Gagal start WA: ' . $e->getMessage());
+            return response()->json(['status' => 'ERROR', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * METHOD 5: Memutuskan koneksi WhatsApp (Disconnect/Logout).
+     * Akan memanggil: DELETE /accounts/{clientId}
+     */
+    public function disconnect(): JsonResponse
+    {
+        try {
+            $url = "{$this->waServiceUrl}/accounts/{$this->clientId}";
+            $response = $this->waClient()->delete($url);
+
+            if ($response->failed() && $response->status() !== 404) {
+                return response()->json(['error' => 'Gagal memutuskan koneksi.'], $response->status());
+            }
+
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            Log::error('Gagal disconnect WA: ' . $e->getMessage());
+            return response()->json(['status' => 'ERROR', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function index()
     {
         $account = $this->getAccountData();

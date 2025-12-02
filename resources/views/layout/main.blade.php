@@ -11,24 +11,27 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        /* =================================================
-        PALET WARNA BARU DISESUAIKAN DI SINI
-        =================================================
-        */
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
         :root {
             --sidebar-width: 260px;
             --sidebar-bg: #84994F; /* HIJAU ANDA */
             --sidebar-link: #eaf0dc; /* Putih/Krem (turunan hijau) */
             --sidebar-link-hover: #ffffff;
             --sidebar-link-active: #FCB53B; /* EMAS ANDA */
-            --topbar-height: 70px;
+            --topbar-height: 72px;
             --primary-maroon: #B45253; /* MAROON ANDA */
+            --body-bg: #f1f5f9;
+            --primary-brand: #84994F;
         }
         
         body {
-            background-color: #f8f9fa; 
+            background-color: var(--body-bg);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* SIDEBAR ORIGINAL (GREEN) */
         .main-sidebar {
             position: fixed;
             top: 0;
@@ -39,6 +42,8 @@
             padding: 20px;
             overflow-y: auto;
             color: white;
+            z-index: 1050;
+            transition: left 0.3s ease;
         }
 
         .main-sidebar .logo {
@@ -100,107 +105,83 @@
             outline: none;
         }
 
+        /* TOPBAR PREMIUM (KEPT) */
         .main-topbar {
             position: fixed;
             top: 0;
             left: var(--sidebar-width);
             right: 0;
             height: var(--topbar-height);
-            background-color: #ffffff;
-            border-bottom: 1px solid #dee2e6;
-            padding: 0 30px;
+            background: rgba(255, 255, 255, 0.9); /* Glassmorphism base */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 0 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             z-index: 1040;
-        }
-        
-        .main-topbar .input-group {
-            width: 400px;
+            transition: all 0.3s ease;
         }
 
-        .main-topbar .topbar-nav .btn {
-            margin-left: 10px;
+        /* OMNIBAR SEARCH */
+        .omnibar {
+            background-color: #f1f5f9;
+            border: 1px solid transparent;
+            border-radius: 99px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            width: 320px;
+            transition: all 0.2s ease;
+        }
+        .omnibar:focus-within {
+            background-color: white;
+            border-color: var(--primary-brand);
+            box-shadow: 0 0 0 4px rgba(132, 153, 79, 0.1);
+            width: 350px; /* Expand effect */
+        }
+        .omnibar input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            font-size: 0.9rem;
+            color: #334155;
+            margin-left: 8px;
+        }
+        .omnibar i {
+            color: #94a3b8;
         }
 
-        /* Mengganti warna btn-primary agar sesuai palet */
-        .btn-primary {
-            background-color: var(--primary-maroon);
-            border-color: var(--primary-maroon);
+        /* PULSE ANIMATION FOR ONLINE STATUS */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
-        .btn-primary:hover {
-            background-color: #9a4243; /* Maroon lebih gelap */
-            border-color: #9a4243;
+        .status-pulse {
+            animation: pulse-green 2s infinite;
         }
-
 
         .main-content {
             margin-left: var(--sidebar-width);
             margin-top: var(--topbar-height);
-            padding: 30px; 
+            padding: 32px; 
             min-height: calc(100vh - var(--topbar-height));
         }
 
+        /* RESPONSIVE */
         @media (max-width: 992px) {
-            .main-sidebar {
-                left: -100%;
-                z-index: 1050;
-                transition: left 0.3s ease;
-            }
-            .main-sidebar.show {
-                left: 0;
-            }
-            .main-topbar {
-                left: 0;
-                padding: 0 15px;
-            }
-            .main-topbar .input-group {
-                width: 100%;
-                max-width: 300px;
-            }
-            .main-content {
-                margin-left: 0;
-                padding: 20px 15px;
-            }
-            .sidebar-overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 1040;
-            }
-            .sidebar-overlay.show {
-                display: block;
-            }
-            .page-header {
-                padding: 20px !important;
-            }
-            .page-header h3 {
-                font-size: 1.25rem !important;
-            }
-            .stats-card {
-                margin-bottom: 15px;
-            }
+            .main-sidebar { left: -100%; }
+            .main-sidebar.show { left: 0; }
+            .main-topbar { left: 0; padding: 0 20px; }
+            .main-content { margin-left: 0; padding: 20px; }
+            .omnibar { width: 40px; padding: 8px; justify-content: center; cursor: pointer; }
+            .omnibar input { display: none; } /* Hide input on mobile initially */
+            .omnibar:focus-within { width: 100%; position: absolute; left: 20px; right: 20px; z-index: 10; }
+            .omnibar:focus-within input { display: block; }
         }
-
-        @media (max-width: 576px) {
-            .main-topbar .input-group {
-                display: none;
-            }
-            .page-header {
-                flex-direction: column !important;
-                align-items: flex-start !important;
-            }
-            .page-header .btn {
-                width: 100%;
-                margin-top: 15px;
-            }
-        }
-
     </style>
 </head>
 <body>
@@ -226,23 +207,34 @@
                     <i class="bi bi-house-door-fill"></i> Dashboard
                 </a>
             </li>
+            
+            @if(auth()->user()->isCS())
+            {{-- CS Dashboard --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                    <i class="bi bi-bar-chart-fill"></i> Analisis
+                <a class="nav-link {{ request()->is('cs/dashboard') ? 'active' : '' }}" href="{{ route('cs.dashboard') }}">
+                    <i class="bi bi-speedometer2"></i> Beranda CS
                 </a>
             </li>
+            @endif
 
             {{-- Divider --}}
             <li class="nav-item mt-2 mb-2">
                 <hr class="sidebar-divider" style="border-color: rgba(255,255,255,0.2); margin: 0;">
             </li>
             <li class="nav-item">
-                <small class="text-muted ps-3" style="font-size: 0.75rem; opacity: 0.7;">DATA MASTER</small>
+                <small class="text-muted ps-3" style="font-size: 0.75rem; opacity: 0.7;">
+                    {{ auth()->user()->isCS() ? 'LAYANAN' : 'DATA MASTER' }}
+                </small>
             </li>
 
-            {{-- Data Master --}}
+            {{-- Data Master / Service Menu --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/customers*') ? 'active' : '' }}" href="{{ route('customer.index') }}">
+                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.ui') }}">
+                    <i class="bi bi-chat-dots-fill"></i> Chat
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('cs/pelanggan*') ? 'active' : '' }}" href="{{ route('customers.index') }}">
                     <i class="bi bi-people-fill"></i> Pelanggan
                 </a>
             </li>
@@ -252,15 +244,13 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/orders*') ? 'active' : '' }}" href="{{ route('order.index') }}">
+                <a class="nav-link {{ request()->is('app/orders*') ? 'active' : '' }}" href="{{ route('orders.index') }}">
                     <i class="bi bi-receipt-cutoff"></i> Pesanan
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.index') }}">
-                    <i class="bi bi-chat-dots-fill"></i> Chat
-                </a>
-            </li>
+
+            @if(auth()->user()->isAdmin())
+            {{-- Admin Only Features --}}
             <li class="nav-item">
                 <a class="nav-link {{ request()->is('cs/whatsapp/scan*') ? 'active' : '' }}" href="{{ route('whatsapp.scan') }}">
                     <i class="bi bi-whatsapp"></i> Koneksi WhatsApp
@@ -277,20 +267,47 @@
 
             {{-- Automasi & Marketing --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/reminders*') ? 'active' : '' }}" href="{{ route('reminder.index') }}">
+                <a class="nav-link {{ request()->is('app/reminders*') ? 'active' : '' }}" href="{{ route('reminders.index') }}">
                     <i class="bi bi-bell-fill"></i> Reminder
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('admin/otomasi-pesan*') ? 'active' : '' }}" href="{{ route('admin.otomasi-pesan') }}">
+                <a class="nav-link {{ request()->is('admin/otomasi-pesan*') ? 'active' : '' }}" href="{{ route('broadcast.index') }}">
                     <i class="bi bi-send-fill"></i> Broadcast
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('admin/daftar-acara*') ? 'active' : '' }}" href="{{ route('admin.daftar-acara') }}">
-                    <i class="bi bi-megaphone-fill"></i> Kampanye
+                <a class="nav-link {{ request()->is('admin/templates*') ? 'active' : '' }}" href="{{ route('admin.templates.index') }}">
+                    <i class="bi bi-file-text-fill"></i> Template Pesan
                 </a>
             </li>
+
+
+            {{-- Divider --}}
+            <li class="nav-item mt-2 mb-2">
+                <hr class="sidebar-divider" style="border-color: rgba(255,255,255,0.2); margin: 0;">
+            </li>
+            <li class="nav-item">
+                <small class="text-muted ps-3" style="font-size: 0.75rem; opacity: 0.7;">ADMIN</small>
+            </li>
+
+            {{-- Admin Management --}}
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('admin/reports*') ? 'active' : '' }}" href="{{ route('admin.reports.index') }}">
+                    <i class="bi bi-bar-chart-fill"></i> Laporan Bisnis
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('admin/api-integration*') ? 'active' : '' }}" href="{{ route('admin.api.index') }}">
+                    <i class="bi bi-code-slash"></i> Integrasi API
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('admin/cs*') ? 'active' : '' }}" href="{{ route('admin.cs.index') }}">
+                    <i class="bi bi-people-fill"></i> Kelola CS
+                </a>
+            </li>
+            @endif
 
             <li class="nav-item mt-auto pt-3 border-top border-secondary">
                 <form action="{{ route('logout') }}" method="POST">
@@ -306,23 +323,60 @@
 
     <main>
         <nav class="main-topbar">
-            <div class="d-flex align-items-center gap-3 flex-grow-1">
-                {{-- Toggle button untuk mobile --}}
-                <button class="btn btn-outline-secondary d-lg-none" id="sidebarToggle">
-                    <i class="bi bi-list"></i>
+            {{-- Left Side: Toggle & Page Title --}}
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-link text-dark p-0 d-lg-none" id="sidebarToggle">
+                    <i class="bi bi-list fs-4"></i>
                 </button>
-                
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" name="search" id="topbarSearch" placeholder="@yield('search-placeholder', 'Cari...')">
+                <div class="d-none d-md-block">
+                    <h5 class="mb-0 fw-bold text-dark">@yield('header-title', 'Dashboard')</h5>
+                    <small class="text-muted">@yield('header-subtitle', 'Selamat datang kembali, ' . auth()->user()->name)</small>
                 </div>
             </div>
-            
-            <div class="topbar-nav d-none d-md-flex">
-                <button class="btn btn-outline-secondary">
-                    <i class="bi bi-bell"></i>
-                </button>
+
+            {{-- Right Side: Search, Status, Actions --}}
+            <div class="d-flex align-items-center gap-3 ms-auto">
+                
+                {{-- Dynamic Actions (Buttons from pages) --}}
                 @yield('topbar-actions')
+
+                <!-- Navbar Search -->
+                <form class="d-none d-lg-block position-relative">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 rounded-start-pill ps-3">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input class="form-control bg-light border-start-0 rounded-end-pill ps-2" type="text" placeholder="Cari data..." aria-label="Search">
+                    </div>
+                </form>
+
+                <!-- CS Status Toggle -->
+                @if(auth()->check() && auth()->user()->role === 'cs')
+                <form action="{{ route('cs.status.toggle') }}" method="POST" class="d-inline-block">
+                    @csrf
+                    <button type="submit" class="btn btn-sm {{ auth()->user()->is_online ? 'btn-success' : 'btn-outline-secondary' }} rounded-pill px-3 fw-bold d-flex align-items-center gap-2">
+                        <i class="bi {{ auth()->user()->is_online ? 'bi-circle-fill' : 'bi-moon-fill' }}" style="font-size: 0.6rem;"></i>
+                        {{ auth()->user()->is_online ? 'ONLINE' : 'OFFLINE' }}
+                    </button>
+                </form>
+                @endif
+
+                <!-- Notifications -->
+                <button class="btn btn-light position-relative rounded-circle p-2" style="width: 40px; height: 40px;">
+                    <i class="bi bi-bell"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
+                        <span class="visually-hidden">New alerts</span>
+                    </span>
+                </button>
+
+                <!-- User Dropdown (Optional, for now just profile link) -->
+                <div class="vr mx-2 d-none d-md-block"></div>
+                
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-sm rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 35px; height: 35px;">
+                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    </div>
+                </div>
             </div>
         </nav>
 

@@ -218,7 +218,7 @@
                            value="{{ old('email') }}"
                            required
                            placeholder="Masukkan email"
-                           pattern="^[a-zA-Z0-9._%+-]+@gmail\.com$"
+                           pattern="[a-zA-Z0-9._%+\-]+@gmail\.com"
                            title="Hanya alamat email @gmail.com yang diizinkan">
                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>

@@ -20,6 +20,7 @@ class User extends Authenticatable
         'verification_code_expires_at',
         'reset_code',
         'reset_code_expires_at',
+        'is_online',
     ];
 
     protected $hidden = [
@@ -36,6 +37,7 @@ class User extends Authenticatable
             'verification_code_expires_at' => 'datetime',
             'reset_code_expires_at' => 'datetime',
             'password' => 'hashed',
+            'is_online' => 'boolean',
         ];
     }
 
@@ -61,14 +63,9 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
-    public function isStaff(): bool
+    public function isCS(): bool
     {
-        return $this->role === 'staff';
-    }
-
-    public function isCustomer(): bool
-    {
-        return $this->role === 'customer';
+        return $this->role === 'cs';
     }
 
     // Relationships - Uncomment setelah model dibuat

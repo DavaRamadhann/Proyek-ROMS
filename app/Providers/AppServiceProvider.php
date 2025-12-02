@@ -19,6 +19,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Event::listen(
+            \App\Domains\Order\Events\OrderCreated::class,
+            \App\Domains\Order\Listeners\SendOrderNotification::class
+        );
     }
 }

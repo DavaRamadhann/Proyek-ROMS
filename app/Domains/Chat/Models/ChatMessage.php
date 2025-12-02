@@ -13,11 +13,17 @@ class ChatMessage extends Model
     protected $table = 'chat_messages';
 
     protected $fillable = [
-    'chat_room_id',
-    'sender_id',
-    'sender_type',
-    'message_content',
-    'status',
+        'chat_room_id',
+        'sender_id',
+        'sender_type',
+        'message_content',
+        'attachment_url',
+        'attachment_type',
+        'status',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
     ];
 
     /**

@@ -30,3 +30,7 @@ Broadcast::channel('chat-room.{roomId}', function ($user, $roomId) {
     
     return false;
 });
+
+Broadcast::channel('chat-dashboard', function ($user) {
+    return $user->role === 'cs' || $user->role === 'admin';
+});

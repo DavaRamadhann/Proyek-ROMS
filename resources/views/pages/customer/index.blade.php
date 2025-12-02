@@ -1,158 +1,113 @@
 @extends('layout.main')
 
-@section('title', 'Manajemen Pelanggan - ROMS')
+@section('title', 'Daftar Pelanggan')
 
-@section('search-placeholder', 'Cari pelanggan berdasarkan nama, telepon, atau email...')
-
-@section('topbar-actions')
-<a href="{{ route('customer.create') }}" class="btn btn-primary">
-    <i class="bi bi-plus-circle me-1"></i><span class="d-none d-lg-inline">Tambah Pelanggan</span>
-</a>
-@endsection
-
-@push('styles')
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #84994F 0%, #6b7d3f 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 25px 30px;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .stats-card {
-        background: white;
-        border-radius: 10px;
-        padding: 15px 20px;
-        border-left: 4px solid #84994F;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .data-card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        border: none;
-    }
-    .badge-custom {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    .action-btn {
-        padding: 6px 12px;
-        font-size: 0.875rem;
-        border-radius: 6px;
-        transition: all 0.2s;
-    }
-    .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-</style>
-@endpush
-
-@section('main-content')
-
-{{-- Page Header --}}
-<div class="page-header">
+@section('content')
+<div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h3 class="mb-1 fw-bold"><i class="bi bi-people-fill me-2"></i>Data Pelanggan</h3>
-        <p class="mb-0 opacity-75">Kelola data master pelanggan dan segmentasi</p>
+        <h2 class="fw-bold text-dark">Daftar Pelanggan</h2>
+        <p class="text-muted">Kelola data pelanggan dan informasi kontak.</p>
     </div>
 </div>
 
-{{-- Stats --}}
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="stats-card">
-            <small class="text-muted">Total Pelanggan</small>
-            <h4 class="mb-0 fw-bold" style="color: #84994F;">{{ $customers->total() }}</h4>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stats-card" style="border-left-color: #FCB53B;">
-            <small class="text-muted">Aktif</small>
-            <h4 class="mb-0 fw-bold" style="color: #FCB53B;">{{ $customers->where('status', 'active')->count() }}</h4>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="stats-card" style="border-left-color: #B45253;">
-            <small class="text-muted">Halaman</small>
-            <h4 class="mb-0 fw-bold" style="color: #B45253;">{{ $customers->currentPage() }} / {{ $customers->lastPage() }}</h4>
-        </div>
-    </div>
-</div>
-
-{{-- Alert Sukses --}}
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i>{{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 @endif
 
-<div class="data-card">
-    <div class="card-body">
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<div class="card border-0 shadow-sm" style="border-radius: 12px;">
+    <div class="card-header bg-white py-3">
+        <form action="{{ route('customers.index') }}" method="GET" class="d-flex gap-2">
+            <input type="text" name="search" class="form-control" placeholder="Cari nama atau nomor HP..." value="{{ request('search') }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Cari
+            </button>
+            @if(request('search'))
+                <a href="{{ route('customers.index') }}" class="btn btn-outline-secondary">Reset</a>
+            @endif
+        </form>
+    </div>
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover">
-                <thead class="table-light">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
                     <tr>
-                        <th>Nama</th>
-                        <th>No. HP</th>
-                        <th>Email</th>
-                        <th>Kota</th>
-                        <th>Segmen</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
+                        <th class="ps-4 py-3">Nama Pelanggan</th>
+                        <th class="py-3">Nomor WhatsApp</th>
+                        <th class="py-3">Email</th>
+                        <th class="py-3">Tag</th>
+                        <th class="py-3">Status Nama</th>
+                        <th class="pe-4 py-3 text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($customers as $customer)
                     <tr>
-                        <td>{{ $customer->name }}</td>
-                        <td>{{ $customer->phone }}</td>
-                        <td>{{ $customer->email ?? '-' }}</td>
-                        <td>{{ $customer->city ?? '-' }}</td>
-                        <td>
-                            <span class="badge bg-info text-dark">{{ $customer->segment_tag ?? 'General' }}</span>
+                        <td class="ps-4">
+                            <div class="fw-bold text-dark">{{ $customer->name }}</div>
+                            <small class="text-muted">ID: {{ $customer->id }}</small>
                         </td>
                         <td>
-                            @if($customer->status == 'active')
-                                <span class="badge bg-success">Aktif</span>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-whatsapp text-success me-2"></i>
+                                <span class="font-monospace">{{ $customer->clean_phone }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            {{ $customer->email ?? '-' }}
+                        </td>
+                        <td>
+                            @if($customer->segment_tag)
+                                <span class="badge bg-info bg-opacity-10 text-info px-2 py-1 rounded-pill">
+                                    {{ $customer->segment_tag }}
+                                </span>
                             @else
-                                <span class="badge bg-secondary">Non-Aktif</span>
+                                <span class="text-muted">-</span>
                             @endif
                         </td>
                         <td>
-                            <div class="d-flex gap-2">
-                                <a href="{{ route('customer.edit', $customer->id) }}" class="action-btn btn btn-sm btn-warning" title="Edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                
-                                <form action="{{ route('customer.destroy', $customer->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus data ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="action-btn btn btn-sm btn-danger" title="Hapus">
-                                        <i class="bi bi-trash-fill"></i>
-                                    </button>
-                                </form>
-                            </div>
+                            @if($customer->is_manual_name)
+                                <span class="badge bg-warning bg-opacity-10 text-warning" title="Nama diedit manual (dikunci)">
+                                    <i class="bi bi-lock-fill"></i> Manual
+                                </span>
+                            @else
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary" title="Nama dari WhatsApp (auto-update)">
+                                    <i class="bi bi-arrow-repeat"></i> Auto
+                                </span>
+                            @endif
+                        </td>
+                        <td class="pe-4 text-end">
+                            <a href="{{ route('customers.edit', $customer->id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {{-- Tombol hapus disembunyikan jika ada relasi, tapi controller tetap handle validasi --}}
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted">Belum ada data pelanggan.</td>
+                        <td colspan="6" class="text-center py-5">
+                            <img src="https://cdn-icons-png.flaticon.com/512/4076/4076432.png" alt="Empty" style="width: 60px; opacity: 0.5;">
+                            <p class="text-muted mt-3">Belum ada data pelanggan.</p>
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        {{-- Paginasi --}}
-        <div class="mt-3">
-            {{ $customers->links() }}
-        </div>
     </div>
+    @if($customers->hasPages())
+    <div class="card-footer bg-white border-0 py-3">
+        {{ $customers->links() }}
+    </div>
+    @endif
 </div>
 @endsection

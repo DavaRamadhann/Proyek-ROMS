@@ -154,7 +154,7 @@
                 </div>
                 <h5 class="card-title fw-bold">Chat CS</h5>
                 <p class="card-text text-muted">Buka inbox untuk melihat dan membalas pesan pelanggan.</p>
-                <a href="{{ route('chat.index') }}" class="btn btn-primary btn-sm">Buka Inbox</a>
+                <a href="{{ route('chat.ui') }}" class="btn btn-primary btn-sm">Buka Inbox</a>
             </div>
         </div>
     </div>
@@ -170,7 +170,7 @@
                 </div>
                 <h5 class="card-title fw-bold">Pelanggan</h5>
                 <p class="card-text text-muted">Kelola data master pelanggan, riwayat, dan segmen.</p>
-                <a href="{{ route('customer.index') }}" class="btn btn-sm" style="background-color: #84994F; color: white;">Kelola Pelanggan</a>
+                <a href="{{ route('customers.index') }}" class="btn btn-sm" style="background-color: #84994F; color: white;">Kelola Pelanggan</a>
             </div>
         </div>
     </div>
@@ -202,13 +202,30 @@
                 </div>
                 <h5 class="card-title fw-bold">Pesanan</h5>
                 <p class="card-text text-muted">Kelola pesanan pelanggan dan tracking pengiriman.</p>
-                <a href="{{ route('order.index') }}" class="btn btn-sm" style="background-color: #B45253; color: white;">Kelola Pesanan</a>
+                <a href="{{ route('orders.index') }}" class="btn btn-sm" style="background-color: #B45253; color: white;">Kelola Pesanan</a>
             </div>
         </div>
     </div>
     @endif
 
-    {{-- 5. Admin Dashboard --}}
+
+    {{-- 5. Kelola CS (Admin Only) --}}
+    @if(auth()->user()->role === 'admin')
+    <div class="col-md-6 col-lg-3">
+        <div class="module-card card">
+            <div class="card-body text-center">
+                <div class="module-icon" style="color: #6f42c1;">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h5 class="card-title fw-bold">Kelola CS</h5>
+                <p class="card-text text-muted">Manajemen akun Customer Service.</p>
+                <a href="{{ route('admin.cs.index') }}" class="btn btn-sm" style="background-color: #6f42c1; color: white;">Kelola CS</a>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- 6. Admin Dashboard --}}
     @if(auth()->user()->role === 'admin')
     <div class="col-md-6 col-lg-3">
         <div class="module-card card">
@@ -250,7 +267,7 @@
                 </div>
                 <h5 class="card-title fw-bold">Otomasi Pesan</h5>
                 <p class="card-text text-muted">Pengaturan otomasi broadcast pesan WhatsApp.</p>
-                <a href="{{ route('admin.otomasi-pesan') }}" class="btn btn-info btn-sm">Kelola Otomasi</a>
+                <a href="{{ route('broadcast.index') }}" class="btn btn-info btn-sm">Kelola Otomasi</a>
             </div>
         </div>
     </div>
@@ -266,27 +283,13 @@
                 </div>
                 <h5 class="card-title fw-bold">Reminder</h5>
                 <p class="card-text text-muted">Aturan reminder otomatis untuk repeat order.</p>
-                <a href="{{ route('reminder.index') }}" class="btn btn-warning btn-sm">Kelola Reminder</a>
+                <a href="{{ route('reminders.index') }}" class="btn btn-warning btn-sm">Kelola Reminder</a>
             </div>
         </div>
     </div>
     @endif
 
-    {{-- 9. Daftar Acara --}}
-    @if(auth()->user()->role === 'admin')
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon" style="color: #B45253;">
-                    <i class="bi bi-megaphone-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Daftar Acara</h5>
-                <p class="card-text text-muted">Kelola acara dan kampanye marketing.</p>
-                <a href="{{ route('admin.daftar-acara') }}" class="btn btn-sm" style="background-color: #B45253; color: white;">Kelola Acara</a>
-            </div>
-        </div>
-    </div>
-    @endif
+
 
 </div>
 
@@ -303,7 +306,7 @@
 <div class="row g-3">
     {{-- Tambah Pelanggan Baru --}}
     <div class="col-md-6 col-lg-4">
-        <a href="{{ route('customer.create') }}" class="text-decoration-none">
+        <a href="{{ route('customers.create') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 hover-card">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle p-3 me-3" style="background-color: rgba(132, 153, 79, 0.1);">
@@ -337,7 +340,7 @@
 
     {{-- Buat Pesanan Baru --}}
     <div class="col-md-6 col-lg-4">
-        <a href="{{ route('order.create') }}" class="text-decoration-none">
+        <a href="{{ route('orders.create') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 hover-card">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle p-3 me-3" style="background-color: rgba(180, 82, 83, 0.1);">
@@ -355,7 +358,7 @@
     @if(auth()->user()->role === 'admin')
     {{-- Tambah Reminder --}}
     <div class="col-md-6 col-lg-4">
-        <a href="{{ route('reminder.create') }}" class="text-decoration-none">
+        <a href="{{ route('reminders.create') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 hover-card">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle p-3 me-3" style="background-color: rgba(255, 193, 7, 0.1);">
@@ -370,26 +373,11 @@
         </a>
     </div>
 
-    {{-- Tambah Acara --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('admin.daftar-acara.tambah') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(180, 82, 83, 0.1);">
-                        <i class="bi bi-calendar-event" style="font-size: 1.5rem; color: #B45253;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Tambah Acara</h6>
-                        <small class="text-muted">Buat acara/kampanye</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
+
 
     {{-- Tambah Otomasi --}}
     <div class="col-md-6 col-lg-4">
-        <a href="{{ route('admin.otomasi-pesan.tambah') }}" class="text-decoration-none">
+        <a href="{{ route('broadcast.create') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100 hover-card">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle p-3 me-3" style="background-color: rgba(13, 110, 253, 0.1);">

@@ -151,19 +151,6 @@
                         </div>
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Kota/Kabupaten</label>
-                            <input type="text" name="city" class="form-control">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Segmen Pelanggan</label>
-                            <select name="segment_tag" class="form-select">
-                                <option value="new">New</option>
-                                <option value="loyal">Loyal</option>
-                                <option value="vip">VIP</option>
-                            </select>
-                        </div>
                     </div>
 
                     <div class="mb-3">

@@ -1,13 +1,9 @@
 <?php
 
-use App\Domains\Order\Http\Controllers\OrderController;
 use Illuminate\Support\Facades\Route;
+use App\Domains\Order\Http\Controllers\OrderController;
 
-Route::prefix('cs/order')->name('order.')->group(function () {
-    Route::get('/', [OrderController::class, 'index'])->name('index');
-    Route::get('/create', [OrderController::class, 'create'])->name('create');
-    Route::post('/', [OrderController::class, 'store'])->name('store');
-    Route::get('/{id}/edit', [OrderController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [OrderController::class, 'update'])->name('update');
-    Route::delete('/{id}', [OrderController::class, 'destroy'])->name('destroy');
+Route::middleware(['auth'])->group(function () {
+    Route::resource('orders', OrderController::class);
+Route::post('orders/{order}/update-status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 });
