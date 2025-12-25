@@ -10,5 +10,8 @@ Artisan::command('inspire', function () {
 
 // Scheduler for reminder command
 Schedule::command('reminders:send')
-    ->dailyAt(config('reminder.schedule_time'))
-    ->description('Kirim reminder pending setiap hari jam '.config('reminder.schedule_time'));
+    ->everyMinute()
+    ->description('Kirim reminder pending setiap menit');
+
+// Scheduler for broadcast command
+Schedule::command('broadcast:process-scheduled')->everyMinute();

@@ -206,9 +206,7 @@
                            value="{{ old('email') }}"
                            required
                            autofocus
-                           placeholder="Masukkan email"
-                           pattern="[a-zA-Z0-9._%+\-]+@gmail\.com"
-                           title="Hanya alamat email @gmail.com yang diizinkan">
+                           placeholder="Masukkan email">
                 </div>
 
                 <div class="mb-3">
@@ -226,17 +224,7 @@
 
                 <button type="submit" class="btn btn-login">Masuk</button>
 
-                <script>
-                document.getElementById('email').addEventListener('input', function () {
-                    const emailField = this;
-                    const pattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-                    if (!pattern.test(emailField.value) && emailField.value !== '') {
-                        emailField.setCustomValidity("Hanya alamat email dengan domain @gmail.com yang diizinkan.");
-                    } else {
-                        emailField.setCustomValidity("");
-                    }
-                });
-                </script>
+
             </form>
 
             <div class="divider">atau</div>

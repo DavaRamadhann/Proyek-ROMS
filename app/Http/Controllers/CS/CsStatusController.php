@@ -4,6 +4,7 @@ namespace App\Http\Controllers\CS;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CsStatusController extends Controller
 {
@@ -11,10 +12,12 @@ class CsStatusController extends Controller
     {
         $user = auth()->user();
         
-        // Toggle status
-        $user->update([
-            'is_online' => !$user->is_online
-        ]);
+        // Toggle status using Query Builder to bypass model casting
+        $newStatus = !$user->is_online;
+        \App\Models\User::where('id', $user->id)->update(['is_online' => DB::raw($newStatus ? 'true' : 'false')]);
+        
+        // Refresh model
+        $user->refresh();
 
         $status = $user->is_online ? 'Online' : 'Offline';
         $message = "Status Anda sekarang: $status";

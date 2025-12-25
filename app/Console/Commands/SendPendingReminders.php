@@ -66,7 +66,7 @@ class SendPendingReminders extends Command
                     $message = str_replace('{product_name}', $productName, $message);
                 }
 
-                $daysSince = $log->order->created_at->diffInDays(now());
+                $daysSince = (int) $log->order->created_at->diffInDays(now());
                 $message = str_replace('{days_since}', $daysSince, $message);
 
                 if ($this->option('dry-run')) {

@@ -63,8 +63,64 @@ Route::middleware(['auth'])->group(function () {
     // Rute Dashboard
     Route::get('/dashboard', function () {
         $user = Auth::user();
-        return view('dashboard', compact('user'));
+        
+        // Use DashboardService for comprehensive statistics
+        $dashboardService = new \App\Services\DashboardService();
+        $stats = $dashboardService->getStatistics($user);
+        
+        // Tambahkan data untuk view Tailwind baru
+        // Map stats ke format yang diharapkan oleh view baru
+        $stats['omset'] = $stats['revenue_this_month'] ?? 0;
+        $stats['total_order'] = \App\Domains\Order\Models\Order::count();
+        $stats['pesanan_hari_ini'] = $stats['orders_today'] ?? 0;
+        $stats['pelanggan_aktif'] = $stats['total_customers'] ?? 0;
+        
+        // Get recent orders (5 terbaru)
+        $recentOrders = \App\Domains\Order\Models\Order::with('customer')
+            ->latest()
+            ->limit(5)
+            ->get();
+        
+        // Get WhatsApp Connection Status
+        $waService = new \App\Services\WaService();
+        $waStatus = $waService->getConnectionStatus();
+        
+        return view('dashboard', compact('user', 'stats', 'recentOrders', 'waStatus'));
     })->name('dashboard');
+
+    // Global Search
+    Route::get('/search', function (Illuminate\Http\Request $request) {
+        $query = $request->input('q');
+        
+        if (empty($query)) {
+            return back()->with('info', 'Silakan masukkan kata kunci pencarian.');
+        }
+        
+        // Search across multiple models
+        $customers = \App\Domains\Customer\Models\Customer::where('name', 'ILIKE', "%{$query}%")
+            ->orWhere('phone', 'LIKE', "%{$query}%")
+            ->limit(5)
+            ->get();
+            
+        $products = \App\Domains\Product\Models\Product::where('name', 'ILIKE', "%{$query}%")
+            ->limit(5)
+            ->get();
+            
+        $orders = \App\Domains\Order\Models\Order::where('order_number', 'LIKE', "%{$query}%")
+            ->limit(5)
+            ->get();
+        
+        // For now, redirect to customers if found, products if found, else back
+        if ($customers->isNotEmpty()) {
+            return redirect()->route('customers.index')->with('search_results', $customers)->with('query', $query);
+        } elseif ($products->isNotEmpty()) {
+            return redirect()->route('product.index')->with('search_results', $products)->with('query', $query);
+        } elseif ($orders->isNotEmpty()) {
+            return redirect()->route('orders.index')->with('search_results', $orders)->with('query', $query);
+        }
+        
+        return back()->with('warning', "Tidak ada hasil untuk '{$query}'");
+    })->name('search.global');
 
     // ======================================================
     // ADMIN CS MANAGEMENT ROUTES
@@ -93,10 +149,14 @@ Route::middleware(['auth'])->group(function () {
         // Laporan Bisnis (Epik 1.5)
         Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])
             ->name('admin.reports.index');
+        Route::get('/reports/export-pdf', [\App\Http\Controllers\Admin\ReportController::class, 'exportPDF'])
+            ->name('admin.reports.export-pdf');
 
         // Integrasi API (Epik 1.4 Docs)
         Route::get('/api-integration', [\App\Http\Controllers\Admin\ApiIntegrationController::class, 'index'])
             ->name('admin.api.index');
+        Route::post('/api-integration/generate-key', [\App\Http\Controllers\Admin\ApiIntegrationController::class, 'generateApiKey'])
+            ->name('admin.api.generate-key');
 
         // Manajemen Template Pesan (Epik 1.2)
         Route::resource('templates', \App\Http\Controllers\Admin\MessageTemplateController::class)
@@ -178,13 +238,19 @@ Route::middleware(['web'])->group(function () {
     
     // 2. AJAX Endpoints untuk Chatting (PENTING!)
     Route::get('/chat/rooms', [ChatController::class, 'getRooms']); // Polling List
-    Route::get('/chat/room/{roomId}/data', [ChatController::class, 'getRoomData']); // Load pesan
-    Route::post('/chat/room/{roomId}/send-ajax', [ChatController::class, 'storeAjaxMessage']); // Kirim pesan
+    Route::get('/room/{id}/data', [ChatController::class, 'getRoomData']); // Load pesan
+    Route::post('/room/{id}/send-ajax', [ChatController::class, 'storeAjaxMessage']); // Kirim pesan
+    Route::post('/start-chat', [ChatController::class, 'startChat'])->name('chat.start'); // New Route
+    Route::get('/chat/notifications', [ChatController::class, 'getNotifications']); // Notifikasi Pesan Baru
+    Route::post('/chat/customer/{id}/update', [ChatController::class, 'updateCustomer']); // Update Customer dari Chat
 
     // 3. API Koneksi WhatsApp (Status & QR)
     // Pastikan URL ini bisa diakses (tanpa middleware admin dulu untuk testing)
     Route::get('/admin/whatsapp/api/status', [WhatsAppConnectionController::class, 'getStatus'])->name('admin.whatsapp.api.status');
     Route::get('/admin/whatsapp/api/qr', [WhatsAppConnectionController::class, 'getQrCode'])->name('admin.whatsapp.api.qr');
     Route::post('/admin/whatsapp/api/reconnect', [WhatsAppConnectionController::class, 'requestReconnect'])->name('admin.whatsapp.api.reconnect');
+    Route::post('/admin/whatsapp/api/start', [WhatsAppConnectionController::class, 'start'])->name('admin.whatsapp.api.start');
+    Route::post('/admin/whatsapp/api/disconnect', [WhatsAppConnectionController::class, 'disconnect'])->name('admin.whatsapp.api.disconnect');
+    Route::post('/admin/whatsapp/api/clear-chats', [WhatsAppConnectionController::class, 'clearAllChats'])->name('admin.whatsapp.api.clear-chats');
 
 });

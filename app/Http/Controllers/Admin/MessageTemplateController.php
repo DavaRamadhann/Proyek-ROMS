@@ -24,7 +24,7 @@ class MessageTemplateController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'content' => 'required|string',
-            'type' => 'required|in:general,broadcast,reminder',
+            'type' => 'required|in:general,broadcast,reminder,order_notification',
         ]);
 
         // Auto-detect variables from content (e.g. {name})
@@ -51,7 +51,7 @@ class MessageTemplateController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'content' => 'required|string',
-            'type' => 'required|in:general,broadcast,reminder',
+            'type' => 'required|in:general,broadcast,reminder,order_notification',
         ]);
 
         // Auto-detect variables

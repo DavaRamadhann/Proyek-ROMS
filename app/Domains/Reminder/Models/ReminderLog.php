@@ -39,4 +39,15 @@ class ReminderLog extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    // Scopes
+    public function scopePending($query)
+    {
+        return $query->where('status', 'pending');
+    }
+
+    public function scopeScheduled($query)
+    {
+        return $query->where('scheduled_at', '<=', now());
+    }
 }

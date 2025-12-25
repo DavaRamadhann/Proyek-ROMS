@@ -1,440 +1,323 @@
-@extends('layout.main')
+@extends('layouts.app')
 
 @section('title', 'Koneksi WhatsApp')
 
-@section('search-placeholder', 'Cari kontak atau pesan...')
+@section('content')
 
-@section('topbar-actions')
-<button class="btn btn-primary" onclick="refreshStatusManual()">
-    <i class="bi bi-arrow-clockwise me-1"></i><span class="d-none d-lg-inline">Refresh Status</span>
-</button>
-@endsection
-
-@push('styles')
-<style>
-    .connection-card {
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        padding: 2rem;
-        min-height: 400px; /* Prevent layout shift */
-    }
-    
-    .qr-container {
-        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        text-align: center;
-        color: white;
-    }
-    
-    .qr-code-box {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 10px;
-        display: inline-block;
-        margin: 1rem 0;
-    }
-    
-    .status-badge {
-        display: inline-block;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.9rem;
-    }
-    
-    .status-ready { background: #d4edda; color: #155724; }
-    .status-qr { background: #fff3cd; color: #856404; }
-    .status-loading { background: #d1ecf1; color: #0c5460; }
-    .status-disconnected { background: #f8d7da; color: #721c24; }
-    .status-initializing { background: #e2e3e5; color: #383d41; }
-    
-    .info-item {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-    }
-    
-    .spinner-border-custom {
-        width: 3rem;
-        height: 3rem;
-        border-width: 0.3rem;
-    }
-
-    /* Transitions */
-    .fade-enter {
-        opacity: 0;
-        transition: opacity 0.3s ease-in;
-    }
-    .fade-enter-active {
-        opacity: 1;
-    }
-</style>
-@endpush
-
-@section('main-content')
-
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="connection-card">
-            <div class="text-center mb-4">
-                <i class="bi bi-whatsapp" style="font-size: 3rem; color: #25D366;"></i>
-                <h3 class="mt-3 fw-bold">Koneksi WhatsApp Web</h3>
-                <p class="text-muted">Hubungkan akun WhatsApp Anda untuk mengelola chat pelanggan</p>
-            </div>
-
-            @if(isset($error))
-                <div class="alert alert-danger">
-                    <i class="bi bi-exclamation-triangle me-2"></i>{{ $error }}
-                    <p class="mb-0 mt-2"><small>Pastikan WhatsApp Service sudah berjalan di: {{ $waServiceUrl }}</small></p>
-                </div>
-            @endif
-
-            <div id="connectionStatusContainer" class="position-relative">
-                
-                <!-- STATE: LOADING / INITIALIZING -->
-                <div id="state-loading" class="text-center d-none">
-                    <div class="spinner-border text-primary spinner-border-custom" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <h5 class="mt-3" id="loading-text">Menginisialisasi...</h5>
-                    <p class="text-muted">Mohon tunggu sebentar...</p>
-                </div>
-
-                <!-- STATE: CONNECTED / READY -->
-                <div id="state-connected" class="d-none">
-                    <div class="qr-container">
-                        <i class="bi bi-check-circle-fill" style="font-size: 4rem;"></i>
-                        <h4 class="mt-3">WhatsApp Terhubung!</h4>
-                        <p class="mb-3">Akun WhatsApp Anda sudah terhubung dan siap digunakan</p>
-                        
-                        <div class="info-item text-dark mt-3">
-                            <strong>Terhubung sejak:</strong> <span id="connected-time">-</span>
-                        </div>
-
-                        <button class="btn btn-light mt-3" onclick="disconnectWhatsApp()">
-                            <i class="bi bi-x-circle me-2"></i>Putuskan Koneksi
-                        </button>
-                    </div>
-                </div>
-
-                <!-- STATE: QR CODE -->
-                <div id="state-qr" class="d-none">
-                    <div class="qr-container">
-                        <h4>Scan QR Code</h4>
-                        <p class="mb-3">Buka WhatsApp di ponsel Anda, masuk ke <strong>Settings → Linked Devices → Link a Device</strong></p>
-                        
-                        <div class="qr-code-box">
-                            <div id="qrcode"></div>
-                        </div>
-
-                        <p class="mt-3 mb-0"><small>QR Code akan diperbarui otomatis</small></p>
-                    </div>
-                </div>
-
-                <!-- STATE: DISCONNECTED -->
-                <div id="state-disconnected" class="d-none">
-                    <div class="text-center">
-                        <div class="status-badge status-disconnected mb-3">
-                            <i class="bi bi-x-circle me-2"></i>Terputus
-                        </div>
-                        <h5>WhatsApp Terputus</h5>
-                        <p class="text-muted">Koneksi WhatsApp telah terputus. Klik tombol di bawah untuk menyambungkan kembali.</p>
-                        
-                        <button class="btn btn-primary mt-3" onclick="reconnectWhatsApp()">
-                            <i class="bi bi-arrow-clockwise me-2"></i>Sambungkan Kembali
-                        </button>
-                    </div>
-                </div>
-
-                <!-- STATE: NOT STARTED (Initial) -->
-                <div id="state-initial" class="d-none">
-                    <div class="text-center">
-                        <i class="bi bi-phone" style="font-size: 3rem; color: #6c757d;"></i>
-                        <h5 class="mt-3">Belum Terhubung</h5>
-                        <p class="text-muted">Mulai koneksi WhatsApp untuk melanjutkan</p>
-                        
-                        <button class="btn btn-primary btn-lg mt-3" onclick="startWhatsApp()">
-                            <i class="bi bi-play-fill me-2"></i>Mulai Koneksi
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="mt-4 pt-4 border-top">
-                <h6 class="fw-bold mb-3">Cara Menghubungkan:</h6>
-                <ol class="text-muted">
-                    <li>Klik tombol "Mulai Koneksi"</li>
-                    <li>Tunggu QR Code muncul</li>
-                    <li>Buka WhatsApp di ponsel Anda</li>
-                    <li>Ketuk Menu (⋮) atau Settings</li>
-                    <li>Pilih "Linked Devices" / "Perangkat Tertaut"</li>
-                    <li>Ketuk "Link a Device" / "Tautkan Perangkat"</li>
-                    <li>Scan QR Code yang muncul di layar ini</li>
-                </ol>
-            </div>
+    {{-- HEADER PAGE (Tidak berubah) --}}
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="qr-code" class="h-6 w-6 text-[#25D366]"></i> Koneksi WhatsApp
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">Hubungkan akun WhatsApp Anda untuk mengelola chat pelanggan.</p>
         </div>
     </div>
-</div>
+
+    {{-- KONTEN UTAMA (DIREVISI) --}}
+    <div class="flex justify-center pb-10">
+        {{-- GANTI DARI max-w-3xl menjadi w-full --}}
+        <div class="w-full"> 
+
+            {{-- MAIN CARD (Dibiarkan lebar penuh) --}}
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden min-h-[400px]">
+                
+                {{-- Card Header --}}
+                <div class="text-center p-8 border-b border-slate-50 bg-slate-50/50">
+                    <i data-lucide="smartphone" class="h-12 w-12 text-[#25D366] mx-auto mb-3"></i>
+                    <h3 class="text-xl font-bold text-slate-800">WhatsApp Web</h3>
+                    <p class="text-sm text-slate-500">Status koneksi perangkat server</p>
+                </div>
+
+                {{-- Alert Error (Jika ada) --}}
+                @if(isset($error))
+                    <div class="mx-8 mt-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-3">
+                        <i data-lucide="alert-triangle" class="h-5 w-5 mt-0.5 flex-shrink-0"></i>
+                        <div>
+                            <p class="font-bold text-sm">{{ $error }}</p>
+                            <p class="text-xs mt-1 opacity-80">Pastikan WhatsApp Service berjalan di: {{ $waServiceUrl }}</p>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- STATUS CONTAINER (Konten di dalamnya menyesuaikan) --}}
+                <div class="p-8" id="connectionStatusContainer">
+                    
+                    {{-- 1. STATE: LOADING --}}
+                    <div id="state-loading" class="text-center py-8 hidden">
+                        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-[#84994F] mb-4"></div>
+                        <h5 class="font-bold text-slate-700" id="loading-text">Menginisialisasi...</h5>
+                        <p class="text-sm text-slate-400">Mohon tunggu sebentar...</p>
+                    </div>
+
+                    {{-- 2. STATE: CONNECTED --}}
+                    <div id="state-connected" class="text-center hidden">
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-8 border border-green-100 mb-6">
+                            <i data-lucide="check-circle-2" class="h-16 w-16 text-green-600 mx-auto mb-4"></i>
+                            <h4 class="text-2xl font-bold text-green-800">WhatsApp Terhubung!</h4>
+                            <p class="text-green-600 text-sm mb-6">Akun WhatsApp Anda sudah terhubung dan siap digunakan.</p>
+                            
+                            <div class="bg-white rounded-xl border border-green-100 p-4 text-left shadow-sm max-w-sm mx-auto space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-slate-400 uppercase">Nomor</span>
+                                    <span class="font-mono font-bold text-slate-700" id="connected-phone">-</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xs font-bold text-slate-400 uppercase">Sejak</span>
+                                    <span class="text-xs text-slate-600 font-medium" id="connected-time">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="disconnectWhatsApp()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 transition shadow-sm">
+                            <i data-lucide="x-circle" class="h-4 w-4"></i> Putuskan Koneksi
+                        </button>
+                    </div>
+                    
+                    {{-- 3. STATE: QR CODE --}}
+                    <div id="state-qr" class="text-center hidden">
+                        <div class="bg-slate-900 rounded-2xl p-6 text-white mb-6 max-w-md mx-auto">
+                            <h4 class="text-lg font-bold mb-2">Scan QR Code</h4>
+                            <p class="text-sm text-slate-300 mb-4">Buka WhatsApp di HP > Menu > Perangkat Tertaut > Tautkan Perangkat</p>
+                            
+                            <div class="bg-white p-3 rounded-xl inline-block">
+                                <div id="qrcode" class="w-[256px] h-[256px] flex items-center justify-center text-slate-300 bg-slate-100"></div>
+                            </div>
+                            
+                            <p class="text-xs text-slate-400 mt-4 animate-pulse">QR Code diperbarui otomatis</p>
+                        </div>
+
+                        <button onclick="reconnectWhatsApp()" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#84994F] text-[#84994F] rounded-lg text-sm font-bold hover:bg-green-50 transition">
+                            <i data-lucide="refresh-cw" class="h-4 w-4"></i> Generate QR Baru
+                        </button>
+                    </div>
+
+                    {{-- 4. STATE: DISCONNECTED --}}
+                    <div id="state-disconnected" class="text-center py-8 hidden">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 text-red-500 mb-4">
+                            <i data-lucide="wifi-off" class="h-8 w-8"></i>
+                        </div>
+                        <h5 class="text-lg font-bold text-slate-800">WhatsApp Terputus</h5>
+                        <p class="text-sm text-slate-500 mb-6">Koneksi WhatsApp telah terputus. Klik tombol di bawah untuk menyambungkan kembali.</p>
+                        
+                        <button onclick="reconnectWhatsApp()" class="inline-flex items-center gap-2 px-6 py-3 bg-[#84994F] text-white rounded-xl text-sm font-bold hover:bg-[#6b7d3f] shadow-lg shadow-green-100 transition">
+                            <i data-lucide="refresh-cw" class="h-4 w-4"></i> Sambungkan Kembali
+                        </button>
+                    </div>
+
+                    {{-- 5. STATE: INITIAL --}}
+                    <div id="state-initial" class="text-center py-8 hidden">
+                        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 text-slate-400 mb-4">
+                            <i data-lucide="smartphone-nfc" class="h-10 w-10"></i>
+                        </div>
+                        <h5 class="text-lg font-bold text-slate-800">Belum Terhubung</h5>
+                        <p class="text-sm text-slate-500 mb-6">Mulai koneksi WhatsApp untuk melanjutkan.</p>
+                        
+                        <button onclick="startWhatsApp()" class="inline-flex items-center gap-2 px-8 py-3 bg-[#84994F] text-white rounded-xl text-sm font-bold hover:bg-[#6b7d3f] shadow-lg shadow-green-100 transition hover:scale-105 transform duration-200">
+                            <i data-lucide="play" class="h-4 w-4"></i> Mulai Koneksi
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            {{-- INSTRUCTIONS --}}
+            <div class="mt-6 bg-white rounded-xl border border-slate-100 p-6">
+                <h6 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="help-circle" class="h-5 w-5 text-[#FCB53B]"></i> Cara Menghubungkan
+                </h6>
+                <ol class="list-decimal list-inside space-y-2 text-sm text-slate-600 marker:text-[#84994F] marker:font-bold pl-2">
+                    <li>Klik tombol <strong>"Mulai Koneksi"</strong>.</li>
+                    <li>Tunggu hingga <strong>QR Code</strong> muncul.</li>
+                    <li>Buka aplikasi WhatsApp di ponsel Anda.</li>
+                    <li>Buka menu <strong>Settings</strong> > <strong>Perangkat Tertaut</strong>.</li>
+                    <li>Scan QR Code yang tampil di layar ini.</li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
 
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/qrcode.min.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-let statusCheckInterval = null;
-let currentQrData = null;
-let currentStatus = null;
-let isActionProcessing = false; // Flag to prevent polling updates during user actions
-let failureCount = 0; // Counter for consecutive failures/disconnections
-const MAX_FAILURES = 3; // Number of failures before showing disconnected UI
-let autoReconnectCount = 0; // Prevent infinite auto-reconnect loops
-const MAX_AUTO_RECONNECT = 5; // Max auto-reconnects per session
+    // --- VARIABLES ---
+    let statusCheckInterval = null;
+    let currentQrData = null;
+    let currentStatus = null;
+    let isActionProcessing = false;
+    let failureCount = 0;
+    const MAX_FAILURES = 3;
+    let autoReconnectCount = 0;
+    const MAX_AUTO_RECONNECT = 5;
 
-// Initial Data from Server (Blade)
-const initialAccount = @json($account ?? null);
+    const initialAccount = @json($account ?? null);
 
-function updateUI(status, data = {}) {
-    // 1. DEBOUNCE LOGIC
-    // If we are currently in QR mode, and the new status is DISCONNECTED or INITIAL,
-    // we should debounce it to prevent flickering.
-    if (currentStatus === 'QR' && (status === 'DISCONNECTED' || status === 'INITIAL')) {
-        failureCount++;
-        console.log(`Potential disconnection detected (${failureCount}/${MAX_FAILURES})...`);
-        
-        if (failureCount < MAX_FAILURES) {
-            return; // Wait for more confirmations
-        }
-        
-        // If we reached max failures, check if we should AUTO-RECONNECT
-        if (autoReconnectCount < MAX_AUTO_RECONNECT) {
-            console.log('QR Session expired. Auto-reconnecting...');
-            autoReconnectCount++;
-            failureCount = 0; // Reset failure count
-            startWhatsApp(true); // Silent start
-            return;
-        }
-    } else {
-        // If status is valid (READY, QR), reset failure counter
-        if (status === 'READY' || status === 'QR') {
-            failureCount = 0;
-            if (status === 'READY') autoReconnectCount = 0; // Reset auto-reconnect on success
-        }
+    // --- HELPER FUNCTIONS ---
+    function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.content : '';
     }
 
-    currentStatus = status; // Update current status tracker
-
-    // 2. UI UPDATE LOGIC
-    // Hide all states first
-    ['state-loading', 'state-connected', 'state-qr', 'state-disconnected', 'state-initial'].forEach(id => {
-        document.getElementById(id).classList.add('d-none');
-    });
-
-    console.log('Updating UI to:', status, data);
-
-    if (status === 'READY') {
-        document.getElementById('state-connected').classList.remove('d-none');
-        if (data.lastConnectedAt) {
-            const date = new Date(data.lastConnectedAt);
-            document.getElementById('connected-time').innerText = date.toLocaleString('id-ID');
-        }
-    } else if (status === 'QR') {
-        document.getElementById('state-qr').classList.remove('d-none');
-        if (data.lastQr && data.lastQr !== currentQrData) {
-            currentQrData = data.lastQr;
-            showQRCode(currentQrData);
-        }
-    } else if (status === 'DISCONNECTED') {
-        document.getElementById('state-disconnected').classList.remove('d-none');
-    } else if (status === 'INITIAL' || !status) {
-        document.getElementById('state-initial').classList.remove('d-none');
-    } else {
-        // Loading or unknown
-        document.getElementById('state-loading').classList.remove('d-none');
-        document.getElementById('loading-text').innerText = 'Status: ' + status;
+    function showElement(id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
     }
-}
 
-function showQRCode(qrString) {
-    const qrcodeDiv = document.getElementById('qrcode');
-    if (qrcodeDiv) {
-        qrcodeDiv.innerHTML = '';
-        try {
-            new QRCode(qrcodeDiv, {
-                text: qrString,
-                width: 256,
-                height: 256,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.M
-            });
-        } catch (e) {
-            console.error('QR Error:', e);
-            qrcodeDiv.innerHTML = '<p class="text-danger">Error generating QR</p>';
-        }
-    }
-}
-
-function showLoading(message) {
-    // Hide all
-    ['state-loading', 'state-connected', 'state-qr', 'state-disconnected', 'state-initial'].forEach(id => {
-        document.getElementById(id).classList.add('d-none');
-    });
-    
-    const loadingDiv = document.getElementById('state-loading');
-    loadingDiv.classList.remove('d-none');
-    document.getElementById('loading-text').innerText = message;
-}
-
-// API Actions
-function startWhatsApp(silent = false) {
-    isActionProcessing = true;
-    if (!silent) showLoading('Memulai WhatsApp Service...');
-    else showLoading('Memperbarui QR Code...'); // Show friendly message during auto-reconnect
-    
-    fetch('/api/whatsapp/start', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Start success');
-            failureCount = 0; 
-            checkStatus();
-        } else {
-            if (!silent) alert('Gagal memulai WhatsApp: ' + (data.message || 'Unknown error'));
-            isActionProcessing = false;
-            checkStatus();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (!silent) alert('Terjadi kesalahan saat memulai WhatsApp');
-        isActionProcessing = false;
-        checkStatus();
-    });
-}
-
-function reconnectWhatsApp() {
-    if (!confirm('Ini akan memutuskan koneksi saat ini dan membuat QR Code baru. Lanjutkan?')) return;
-    
-    isActionProcessing = true;
-    showLoading('Membuat koneksi baru...');
-    
-    fetch('/api/whatsapp/reconnect', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Reconnect success');
-            failureCount = 0;
-            checkStatus();
-        } else {
-            alert('Gagal menyambungkan kembali: ' + (data.message || 'Unknown error'));
-            isActionProcessing = false;
-            checkStatus();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyambungkan kembali');
-        isActionProcessing = false;
-        checkStatus();
-    });
-}
-
-function disconnectWhatsApp() {
-    if (!confirm('Anda yakin ingin memutuskan koneksi WhatsApp?')) return;
-    
-    isActionProcessing = true;
-    showLoading('Memutuskan koneksi...');
-    
-    fetch('/api/whatsapp/disconnect', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            console.log('Disconnect success');
-            checkStatus();
-        } else {
-            alert('Gagal memutuskan koneksi: ' + (data.message || 'Unknown error'));
-            isActionProcessing = false;
-            checkStatus();
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat memutuskan koneksi');
-        isActionProcessing = false;
-        checkStatus();
-    });
-}
-
-function checkStatus() {
-    fetch('/api/whatsapp/status?t=' + new Date().getTime())
-        .then(response => response.json())
-        .then(data => {
-            isActionProcessing = false; // Reset flag
-            if (data.success && data.account) {
-                const account = data.account;
-                updateUI(account.status, account);
-            } else {
-                updateUI('INITIAL'); 
-            }
-        })
-        .catch(error => {
-            console.error('Status check error:', error);
-            updateUI('INITIAL');
+    function hideAllStates() {
+        ['state-loading', 'state-connected', 'state-qr', 'state-disconnected', 'state-initial'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
         });
-}
-
-function refreshStatusManual() {
-    showLoading('Memperbarui status...');
-    checkStatus();
-}
-
-// Initialize
-if (initialAccount) {
-    updateUI(initialAccount.status, initialAccount);
-} else {
-    updateUI('INITIAL');
-}
-
-// Polling every 2 seconds
-statusCheckInterval = setInterval(() => {
-    if (!isActionProcessing) {
-        checkStatus();
     }
-}, 2000);
 
-// Check QRCode lib
-if (typeof QRCode === 'undefined') {
-    console.error('QRCode library not loaded!');
-    alert('Library QR Code gagal dimuat. Silakan refresh halaman.');
-}
+    // --- UI UPDATE LOGIC ---
+    function updateUI(status, data = {}) {
+        // Debounce & Auto Reconnect Logic
+        if (currentStatus === 'QR' && (status === 'DISCONNECTED' || status === 'INITIAL')) {
+            failureCount++;
+            if (failureCount < MAX_FAILURES) return;
+            if (autoReconnectCount < MAX_AUTO_RECONNECT) {
+                autoReconnectCount++;
+                failureCount = 0;
+                startWhatsApp(true);
+                return;
+            }
+        } else {
+            if (status === 'READY' || status === 'QR') {
+                failureCount = 0;
+                if (status === 'READY') autoReconnectCount = 0;
+            }
+        }
 
-// Cleanup
-window.addEventListener('beforeunload', () => {
-    if (statusCheckInterval) {
-        clearInterval(statusCheckInterval);
+        currentStatus = status;
+        hideAllStates();
+        console.log('Updating UI:', status);
+
+        if (status === 'READY' || status === 'CONNECTED') {
+            showElement('state-connected');
+            if (data.phoneNumber) {
+                let phone = data.phoneNumber.replace(/\D/g, '');
+                document.getElementById('connected-phone').innerText = '+' + phone;
+            }
+            if (data.connectedAt) {
+                const date = new Date(data.connectedAt);
+                document.getElementById('connected-time').innerText = date.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        } else if (status === 'QR' || status === 'QR_READY') {
+            showElement('state-qr');
+            if (data.qr && data.qr !== currentQrData) {
+                currentQrData = data.qr;
+                showQRCode(currentQrData);
+            }
+        } else if (status === 'DISCONNECTED') {
+            showElement('state-disconnected');
+        } else if (status === 'INITIAL' || !status) {
+            showElement('state-initial');
+        } else {
+            showElement('state-loading');
+            document.getElementById('loading-text').innerText = 'Status: ' + status;
+        }
     }
-});
+
+    function showQRCode(qrString) {
+        const qrcodeDiv = document.getElementById('qrcode');
+        if (qrcodeDiv) {
+            qrcodeDiv.innerHTML = '';
+            try {
+                new QRCode(qrcodeDiv, {
+                    text: qrString,
+                    width: 256,
+                    height: 256,
+                    colorDark : "#1e293b",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.L
+                });
+            } catch (e) {
+                console.error('QR Error:', e);
+                qrcodeDiv.innerHTML = '<span class="text-red-500 text-xs">Gagal Generate QR</span>';
+            }
+        }
+    }
+
+    function showLoading(message) {
+        hideAllStates();
+        showElement('state-loading');
+        document.getElementById('loading-text').innerText = message;
+    }
+
+    // --- API CALLS ---
+    function apiRequest(url) {
+        isActionProcessing = true;
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            }
+        }).then(res => res.json());
+    }
+
+    function startWhatsApp(silent = false) {
+        if (!silent) showLoading('Menghubungkan...');
+        apiRequest('/admin/whatsapp/api/start')
+            .then(data => {
+                if (data.success) checkStatus();
+                else { if(!silent) alert('Gagal: ' + data.message); isActionProcessing = false; checkStatus(); }
+            })
+            .catch(() => { isActionProcessing = false; checkStatus(); });
+    }
+
+    function reconnectWhatsApp() {
+        if (!confirm('Reset koneksi dan buat QR baru?')) return;
+        showLoading('Membuat QR...');
+        apiRequest('/admin/whatsapp/api/reconnect')
+            .then(data => {
+                if (data.success) setTimeout(() => { isActionProcessing = false; checkStatus(); }, 2000);
+                else { alert('Gagal: ' + data.message); isActionProcessing = false; checkStatus(); }
+            });
+    }
+
+    function disconnectWhatsApp() {
+        if (!confirm('Putuskan koneksi?')) return;
+        showLoading('Memutuskan...');
+        apiRequest('/admin/whatsapp/api/disconnect')
+            .then(() => checkStatus());
+    }
+
+    function checkStatus() {
+        fetch('/admin/whatsapp/api/status?t=' + new Date().getTime())
+            .then(res => res.json())
+            .then(data => {
+                isActionProcessing = false;
+                if (data.success && data.account) {
+                    updateUI(data.account.status, data.account);
+                } else {
+                    updateUI('INITIAL');
+                }
+            })
+            .catch(() => {});
+    }
+
+    // --- INIT ---
+    if (initialAccount) {
+        updateUI(initialAccount.status, initialAccount);
+    } else {
+        updateUI('INITIAL');
+    }
+
+    statusCheckInterval = setInterval(() => {
+        if (!isActionProcessing) checkStatus();
+    }, 3000);
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    
+    window.addEventListener('beforeunload', () => {
+        if (statusCheckInterval) clearInterval(statusCheckInterval);
+    });
 </script>
 @endpush

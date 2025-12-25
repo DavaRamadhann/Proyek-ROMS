@@ -19,7 +19,7 @@ class BroadcastController extends Controller
 
     public function create()
     {
-        $templates = \App\Domains\Message\Models\MessageTemplate::whereIn('type', ['general', 'broadcast'])->get();
+        $templates = \App\Domains\Message\Models\MessageTemplate::all();
         return view('pages.broadcast.create', compact('templates'));
     }
 
@@ -30,6 +30,13 @@ class BroadcastController extends Controller
             'message_content' => 'required|string',
             'target_segment' => 'required|string',
         ]);
+
+        if ($request->scheduled_at) {
+            $scheduledTime = \Carbon\Carbon::parse($request->scheduled_at);
+            if ($scheduledTime->lte(now())) {
+                return back()->with('error', 'Waktu jadwal harus lebih besar dari waktu sekarang (minimal 1 menit kedepan).');
+            }
+        }
 
         DB::beginTransaction();
         try {
@@ -76,5 +83,30 @@ class BroadcastController extends Controller
     {
         $broadcast->load(['logs.customer', 'creator']);
         return view('pages.broadcast.show', compact('broadcast'));
+    }
+
+    public function processScheduled()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('broadcast:process-scheduled');
+            $output = \Illuminate\Support\Facades\Artisan::output();
+            
+            return back()->with('success', 'Perintah pemrosesan jadwal berhasil dijalankan. Output: ' . $output);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menjalankan perintah: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(Broadcast $broadcast)
+    {
+        try {
+            $broadcastName = $broadcast->name;
+            $broadcast->delete(); // Cascade delete logs via foreign key constraint
+            
+            return redirect()->route('broadcast.index')
+                ->with('success', "Broadcast '{$broadcastName}' berhasil dihapus.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus broadcast: ' . $e->getMessage());
+        }
     }
 }

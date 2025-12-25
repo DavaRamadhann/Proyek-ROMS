@@ -197,16 +197,87 @@ class WhatsAppConnectionController extends Controller
         }
     }
 
+    /**
+     * METHOD 6: Clear all chat data (rooms and messages)
+     * Use when switching WhatsApp accounts
+     */
+    public function clearAllChats(): JsonResponse
+    {
+        try {
+            \DB::beginTransaction();
+            
+            // Delete all chat messages
+            \App\Domains\Chat\Models\ChatMessage::truncate();
+            
+            // Delete all chat rooms
+            \App\Domains\Chat\Models\ChatRoom::truncate();
+            
+            // Clear stored phone number
+            \DB::table('system_settings')
+                ->where('key', 'whatsapp_connected_number')
+                ->delete();
+            
+            \DB::commit();
+            
+            Log::info('All chat data cleared successfully');
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua chat berhasil dihapus'
+            ]);
+            
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            Log::error('Gagal menghapus chat: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store connected WhatsApp phone number
+     */
+    private function storeConnectedNumber(string $phoneNumber): void
+    {
+        \DB::table('system_settings')->updateOrInsert(
+            ['key' => 'whatsapp_connected_number'],
+            [
+                'value' => $phoneNumber,
+                'updated_at' => now()
+            ]
+        );
+    }
+
+    /**
+     * Get currently connected WhatsApp phone number
+     */
+    public function getConnectedNumber(): ?string
+    {
+        $setting = \DB::table('system_settings')
+            ->where('key', 'whatsapp_connected_number')
+            ->first();
+        
+        return $setting ? $setting->value : null;
+    }
+
     public function index()
     {
         $account = $this->getAccountData();
         $waServiceUrl = $this->waServiceUrl;
+        $connectedNumber = $this->getConnectedNumber();
+        
+        // Store phone number if connected
+        if ($account && isset($account['phoneNumber']) && $account['status'] === 'CONNECTED') {
+            $this->storeConnectedNumber($account['phoneNumber']);
+        }
         
         // Jika account null (misal service mati), kita buat dummy object agar view tidak error
         if (!$account) {
             $account = ['status' => 'DISCONNECTED'];
         }
 
-        return view('pages.whatsapp.qr', compact('account', 'waServiceUrl'));
+        return view('pages.whatsapp.qr', compact('account', 'waServiceUrl', 'connectedNumber'));
     }
 }

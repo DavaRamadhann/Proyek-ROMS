@@ -12,16 +12,84 @@ class ChatRoomRepository implements ChatRoomRepositoryInterface
     // Hapus __construct() yang memanggil ChatService
 
     /**
-     * Cari room, atau buat baru.
-     * Logika assign CS dipindahkan ke ChatService.
+     * Find room, or create new with round-robin CS assignment.
      */
     public function findOrCreateRoomForCustomer(int $customerId): ChatRoom
     {
-        return ChatRoom::firstOrCreate(
-            ['customer_id' => $customerId],
-            ['status' => 'new']
+        // Check if room already exists
+        $existingRoom = ChatRoom::where('customer_id', $customerId)->first();
+        if ($existingRoom) {
+            return $existingRoom;
+        }
+
+        // Get next CS in round-robin
+        $assignedCsId = $this->getNextCsIdRoundRobin();
+
+        // Create new room with assigned CS
+        return ChatRoom::create([
+            'customer_id' => $customerId,
+            'status' => 'new',
+            'cs_user_id' => $assignedCsId
+        ]);
+    }
+
+    public function findOrCreateRoomForContact(int $contactId): ChatRoom
+    {
+        // Check if room already exists
+        $existingRoom = ChatRoom::where('chat_contact_id', $contactId)->first();
+        if ($existingRoom) {
+            return $existingRoom;
+        }
+
+        // Get next CS in round-robin
+        $assignedCsId = $this->getNextCsIdRoundRobin();
+
+        // Create new room with assigned CS
+        return ChatRoom::create([
+            'chat_contact_id' => $contactId,
+            'status' => 'new',
+            'cs_user_id' => $assignedCsId
+        ]);
+    }
+
+    /**
+     * Get next CS ID using round-robin algorithm
+     */
+    private function getNextCsIdRoundRobin(): ?int
+    {
+        // Get all active CS users who are ONLINE
+        $csUsers = \App\Models\User::where('role', 'cs')
+            ->where('email_verified_at', '!=', null)
+            ->whereRaw('is_online = true')  // PostgreSQL boolean comparison
+            ->orderBy('id')
+            ->get();
+
+        if ($csUsers->isEmpty()) {
+            // Fallback: return null (no online CS available)
+            return null;
+        }
+
+        // Get last assigned index from system settings
+        $setting = \DB::table('system_settings')
+            ->where('key', 'last_assigned_cs_index')
+            ->first();
+
+        $lastIndex = $setting ? (int)$setting->value : -1;
+
+        // Calculate next index (round-robin)
+        $nextIndex = ($lastIndex + 1) % $csUsers->count();
+
+        // Update the setting
+        \DB::table('system_settings')->updateOrInsert(
+            ['key' => 'last_assigned_cs_index'],
+            [
+                'value' => (string)$nextIndex,
+                'updated_at' => now()
+            ]
         );
-        // Kita tidak assign CS di sini lagi
+
+        // Return the CS user ID at next index
+        return $csUsers[$nextIndex]->id;
     }
 
     /**

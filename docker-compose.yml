@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  wa_service:
+    build: ./wa-service/waservice
+    container_name: wa_service
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./wa-service/waservice:/app
+      - /app/node_modules
+      - wa_sessions:/app/wa-sessions
+      - wa_auth:/app/.wwebjs_auth
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3100/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  wa_auth:
+    driver: local
+  wa_sessions:
+    driver: local

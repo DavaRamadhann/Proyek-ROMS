@@ -1,68 +1,26 @@
-@extends('layout.main')
+@extends('layouts.app')
 
 @section('title', 'Dashboard Admin - ROMS')
 
-@push('styles')
-<style>
-    .dashboard-header {
-        font-size: 1.75rem; font-weight: 700; color: #333;
-    }
-    .cta-banner {
-        background-color: #84994F; /* HIJAU ANDA */
-        color: white; border-radius: 12px;
-    }
-    .cta-banner a {
-        color: #FCB53B; /* EMAS ANDA */
-        text-decoration: none; font-weight: 600;
-    }
-    .card {
-        border-radius: 12px; border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); height: 100%;
-    }
-    
-    /* --- STYLE UTAMA FITUR ANALISIS --- */
-    .section-title {
-        font-size: 1.2rem; font-weight: 700; color: #333; 
-        margin-bottom: 15px; border-left: 5px solid #FCB53B; padding-left: 10px;
-    }
-    .map-placeholder {
-        background-color: #e9ecef; border-radius: 12px; height: 350px;
-        display: flex; align-items: center; justify-content: center; color: #6c757d; font-weight: 600;
-        position: relative; overflow: hidden;
-    }
-    
-    /* Bar volume pembelian */
-    .volume-bar { height: 8px; border-radius: 4px; background-color: #eee; overflow: hidden; }
-    .volume-fill { height: 100%; background-color: #B45253; } /* Maroon */
-    
-    /* Badges Segmen */
-    .badge-loyal { background-color: #84994F; color: white; } /* Hijau */
-    .badge-aktif { background-color: #45b6e8; color: white; } /* Biru */
-    .badge-baru { background-color: #FCB53B; color: #333; }   /* Emas */
-</style>
-@endpush
+@section('content')
 
+<h2 class="text-3xl font-bold text-gray-800 mb-6">Analisis</h2>
 
-@section('main-content')
-
-<h2 class="dashboard-header mb-4">Analisis</h2>
-
-<div class="cta-banner p-4 mb-5 d-flex flex-column flex-md-row justify-content-between align-items-center">
-    <div class="d-flex align-items-center mb-3 mb-md-0">
-        <div style="font-size: 2rem;" class="me-3 d-none d-md-block">💡</div>
+<div class="bg-[#84994F] text-white rounded-xl p-6 mb-8 shadow-lg flex flex-col md:flex-row justify-between items-center">
+    <div class="flex items-center mb-4 md:mb-0">
+        <div class="text-4xl mr-4 hidden md:block">💡</div>
         <div>
-            <strong class="d-block">Halo Admin! Selamat Datang di ROMS.</strong>
-            <small>Berikut adalah ringkasan performa toko dan analisis pelanggan Anda.</small>
+            <strong class="block text-lg">Halo Admin! Selamat Datang di ROMS.</strong>
+            <small class="opacity-90">Berikut adalah ringkasan performa toko dan analisis pelanggan Anda.</small>
         </div>
     </div>
 </div>
 
-
-<div class="row mb-5">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-end mb-3">
-            <h4 class="section-title mb-0">Persebaran Area & Hotspot Pembelian</h4>
-            <select class="form-select form-select-sm w-auto shadow-sm">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
+    <div class="lg:col-span-12">
+        <div class="flex justify-between items-end mb-4">
+            <h4 class="text-xl font-bold text-gray-800 border-l-4 border-[#FCB53B] pl-3">Persebaran Area & Hotspot Pembelian</h4>
+            <select class="form-select text-sm border-gray-300 rounded-lg shadow-sm focus:border-[#84994F] focus:ring focus:ring-[#84994F]/20">
                 <option>Kuartal Terakhir (Q3)</option>
                 <option>Bulan Ini</option>
                 <option>Tahun Ini</option>
@@ -70,188 +28,191 @@
         </div>
     </div>
 
-    <div class="col-lg-7 mb-3 mb-lg-0">
-        <div class="card p-0 overflow-hidden">
-            <div class="map-placeholder">
+    <div class="lg:col-span-7">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden h-full relative">
+            <div class="bg-gray-100 h-[350px] flex items-center justify-center text-gray-500 font-semibold relative">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ad/Indonesia_location_map.svg/2400px-Indonesia_location_map.svg.png" 
                      alt="Peta Indonesia" 
-                     style="position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0.4;">
+                     class="absolute w-full h-full object-cover opacity-40">
                 
-                <div style="position: absolute; top: 65%; left: 28%; width: 25px; height: 25px; background: rgba(180, 82, 83, 0.8); border-radius: 50%; box-shadow: 0 0 0 5px rgba(180, 82, 83, 0.3);" title="Jakarta (High)"></div>
-                <div style="position: absolute; top: 68%; left: 32%; width: 15px; height: 15px; background: rgba(252, 181, 59, 0.8); border-radius: 50%;" title="Bandung (Medium)"></div>
-                <div style="position: absolute; top: 67%; left: 45%; width: 18px; height: 18px; background: rgba(132, 153, 79, 0.8); border-radius: 50%;" title="Surabaya (Medium)"></div>
+                <div class="absolute top-[65%] left-[28%] w-6 h-6 bg-[#B45253]/80 rounded-full shadow-[0_0_0_5px_rgba(180,82,83,0.3)] cursor-help" title="Jakarta (High)"></div>
+                <div class="absolute top-[68%] left-[32%] w-4 h-4 bg-[#FCB53B]/80 rounded-full cursor-help" title="Bandung (Medium)"></div>
+                <div class="absolute top-[67%] left-[45%] w-[18px] h-[18px] bg-[#84994F]/80 rounded-full cursor-help" title="Surabaya (Medium)"></div>
                 
-                <div style="position: absolute; bottom: 20px; right: 20px; background: white; padding: 10px; border-radius: 8px; font-size: 0.8rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                    <div class="d-flex align-items-center mb-1"><span style="width:10px; height:10px; background:#B45253; border-radius:50%; display:inline-block; margin-right:5px;"></span> Tinggi</div>
-                    <div class="d-flex align-items-center mb-1"><span style="width:10px; height:10px; background:#FCB53B; border-radius:50%; display:inline-block; margin-right:5px;"></span> Sedang</div>
-                    <div class="d-flex align-items-center"><span style="width:10px; height:10px; background:#84994F; border-radius:50%; display:inline-block; margin-right:5px;"></span> Rendah</div>
+                <div class="absolute bottom-5 right-5 bg-white p-3 rounded-lg text-xs shadow-md">
+                    <div class="flex items-center mb-1"><span class="w-2.5 h-2.5 bg-[#B45253] rounded-full inline-block mr-2"></span> Tinggi</div>
+                    <div class="flex items-center mb-1"><span class="w-2.5 h-2.5 bg-[#FCB53B] rounded-full inline-block mr-2"></span> Sedang</div>
+                    <div class="flex items-center"><span class="w-2.5 h-2.5 bg-[#84994F] rounded-full inline-block mr-2"></span> Rendah</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-5">
-        <div class="card h-100">
-            <div class="card-header bg-white fw-bold py-3">Top Kota Pembelian</div>
-            <div class="card-body p-0">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+    <div class="lg:col-span-5">
+        <div class="bg-white rounded-xl shadow-sm h-full flex flex-col">
+            <div class="px-6 py-4 border-b border-gray-100 font-bold text-gray-800">Top Kota Pembelian</div>
+            <div class="flex-1 overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-50 text-gray-600">
                         <tr>
-                            <th class="ps-4">Kota</th>
-                            <th>Vol. Order</th>
-                            <th class="text-end pe-4">Pertumbuhan</th>
+                            <th class="px-6 py-3 font-semibold">Kota</th>
+                            <th class="px-6 py-3 font-semibold">Vol. Order</th>
+                            <th class="px-6 py-3 font-semibold text-right">Pertumbuhan</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td class="ps-4 fw-bold">Jakarta Selatan</td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold">1,240</span>
-                                    <div class="volume-bar w-100 mt-1"><div class="volume-fill" style="width: 90%;"></div></div>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-gray-800">Jakarta Selatan</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">1,240</span>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-[#B45253]" style="width: 90%;"></div>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="text-end pe-4 text-success"><i class="bi bi-arrow-up"></i> 12%</td>
+                            <td class="px-6 py-4 text-right text-green-600 font-medium"><i class="bi bi-arrow-up"></i> 12%</td>
                         </tr>
-                        <tr>
-                            <td class="ps-4 fw-bold">Bandung</td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold">850</span>
-                                    <div class="volume-bar w-100 mt-1"><div class="volume-fill bg-warning" style="width: 65%;"></div></div>
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-gray-800">Bandung</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">850</span>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-[#FCB53B]" style="width: 65%;"></div>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="text-end pe-4 text-success"><i class="bi bi-arrow-up"></i> 8%</td>
+                            <td class="px-6 py-4 text-right text-green-600 font-medium"><i class="bi bi-arrow-up"></i> 8%</td>
                         </tr>
-                        <tr>
-                            <td class="ps-4 fw-bold">Surabaya</td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold">420</span>
-                                    <div class="volume-bar w-100 mt-1"><div class="volume-fill bg-success" style="width: 40%;"></div></div>
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-gray-800">Surabaya</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">420</span>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-green-500" style="width: 40%;"></div>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="text-end pe-4 text-danger"><i class="bi bi-arrow-down"></i> 2%</td>
+                            <td class="px-6 py-4 text-right text-red-500 font-medium"><i class="bi bi-arrow-down"></i> 2%</td>
                         </tr>
-                        <tr>
-                            <td class="ps-4 fw-bold">Medan</td>
-                            <td>
-                                <div class="d-flex flex-column">
-                                    <span class="fw-bold">310</span>
-                                    <div class="volume-bar w-100 mt-1"><div class="volume-fill bg-success" style="width: 30%;"></div></div>
+                        <tr class="hover:bg-gray-50/50 transition-colors">
+                            <td class="px-6 py-4 font-bold text-gray-800">Medan</td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">310</span>
+                                    <div class="w-full h-2 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                        <div class="h-full bg-green-500" style="width: 30%;"></div>
+                                    </div>
                                 </div>
                             </td>
-                            <td class="text-end pe-4 text-success"><i class="bi bi-arrow-up"></i> 5%</td>
+                            <td class="px-6 py-4 text-right text-green-600 font-medium"><i class="bi bi-arrow-up"></i> 5%</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer bg-white text-center py-3">
-                <button class="btn btn-sm btn-outline-secondary">Lihat Semua Lokasi</button>
+            <div class="px-6 py-4 border-t border-gray-100 text-center">
+                <button class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Lihat Semua Lokasi</button>
             </div>
         </div>
     </div>
 </div>
 
-
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-end mb-3">
-            <h4 class="section-title mb-0">Top Pelanggan & Segmen</h4>
-            <div>
-                <button class="btn btn-sm btn-outline-secondary me-2">
-                    <i class="bi bi-filter me-1"></i> Filter
-                </button>
-                <button class="btn btn-sm btn-primary">
-                    <i class="bi bi-download me-1"></i> Export Laporan
-                </button>
-            </div>
+<div class="mb-8">
+    <div class="flex justify-between items-end mb-4">
+        <h4 class="text-xl font-bold text-gray-800 border-l-4 border-[#FCB53B] pl-3">Top Pelanggan & Segmen</h4>
+        <div class="flex gap-2">
+            <button class="px-3 py-1.5 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                <i class="bi bi-filter mr-1"></i> Filter
+            </button>
+            <button class="px-3 py-1.5 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="bi bi-download mr-1"></i> Export Laporan
+            </button>
         </div>
+    </div>
 
-        <div class="card">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="bg-light">
-                            <tr>
-                                <th class="ps-4">Pelanggan</th>
-                                <th>Segmen</th>
-                                <th class="text-center">Total Order (6 Bln)</th>
-                                <th>Total Belanja</th>
-                                <th>Terakhir Beli</th>
-                                <th class="text-end pe-4">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light text-dark d-flex justify-content-center align-items-center me-3 fw-bold border" style="width: 40px; height: 40px;">AS</div>
-                                        <div>
-                                            <div class="fw-bold">Ahmad Subagja</div>
-                                            <small class="text-muted">ahmad@dummy.com</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="badge badge-loyal rounded-pill px-3">Pelanggan Loyal</span></td>
-                                <td class="fw-bold text-center fs-5">24</td>
-                                <td>Rp 5.400.000</td>
-                                <td>2 hari lalu</td>
-                                <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-outline-primary" title="Kirim Hadiah / Diskon Khusus">
-                                        <i class="bi bi-gift-fill me-1"></i> Kirim Reward
-                                    </button>
-                                </td>
-                            </tr>
+    <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 text-gray-600">
+                    <tr>
+                        <th class="px-6 py-3 font-semibold">Pelanggan</th>
+                        <th class="px-6 py-3 font-semibold">Segmen</th>
+                        <th class="px-6 py-3 font-semibold text-center">Total Order (6 Bln)</th>
+                        <th class="px-6 py-3 font-semibold">Total Belanja</th>
+                        <th class="px-6 py-3 font-semibold">Terakhir Beli</th>
+                        <th class="px-6 py-3 font-semibold text-right">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center font-bold border border-gray-200 mr-3">AS</div>
+                                <div>
+                                    <div class="font-bold text-gray-800">Ahmad Subagja</div>
+                                    <small class="text-gray-500">ahmad@dummy.com</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4"><span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#84994F] text-white">Pelanggan Loyal</span></td>
+                        <td class="px-6 py-4 font-bold text-center text-lg text-gray-800">24</td>
+                        <td class="px-6 py-4 text-gray-800">Rp 5.400.000</td>
+                        <td class="px-6 py-4 text-gray-500">2 hari lalu</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="px-3 py-1.5 text-xs text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="Kirim Hadiah / Diskon Khusus">
+                                <i class="bi bi-gift-fill mr-1"></i> Kirim Reward
+                            </button>
+                        </td>
+                    </tr>
 
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light text-dark d-flex justify-content-center align-items-center me-3 fw-bold border" style="width: 40px; height: 40px;">SL</div>
-                                        <div>
-                                            <div class="fw-bold">Siti Lestari</div>
-                                            <small class="text-muted">siti@dummy.com</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="badge badge-aktif rounded-pill px-3">Pelanggan Aktif</span></td>
-                                <td class="fw-bold text-center fs-5">10</td>
-                                <td>Rp 1.850.000</td>
-                                <td>1 minggu lalu</td>
-                                <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-outline-primary" title="Kirim Hadiah / Diskon Khusus">
-                                        <i class="bi bi-gift-fill me-1"></i> Kirim Reward
-                                    </button>
-                                </td>
-                            </tr>
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center font-bold border border-gray-200 mr-3">SL</div>
+                                <div>
+                                    <div class="font-bold text-gray-800">Siti Lestari</div>
+                                    <small class="text-gray-500">siti@dummy.com</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4"><span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#45b6e8] text-white">Pelanggan Aktif</span></td>
+                        <td class="px-6 py-4 font-bold text-center text-lg text-gray-800">10</td>
+                        <td class="px-6 py-4 text-gray-800">Rp 1.850.000</td>
+                        <td class="px-6 py-4 text-gray-500">1 minggu lalu</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="px-3 py-1.5 text-xs text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="Kirim Hadiah / Diskon Khusus">
+                                <i class="bi bi-gift-fill mr-1"></i> Kirim Reward
+                            </button>
+                        </td>
+                    </tr>
 
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-light text-dark d-flex justify-content-center align-items-center me-3 fw-bold border" style="width: 40px; height: 40px;">BH</div>
-                                        <div>
-                                            <div class="fw-bold">Budi Hartono</div>
-                                            <small class="text-muted">budi@dummy.com</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td><span class="badge badge-baru rounded-pill px-3">Pelanggan Baru</span></td>
-                                <td class="fw-bold text-center fs-5">1</td>
-                                <td>Rp 150.000</td>
-                                <td>3 minggu lalu</td>
-                                <td class="text-end pe-4">
-                                    <button class="btn btn-sm btn-outline-primary" title="Kirim Hadiah / Diskon Khusus">
-                                        <i class="bi bi-gift-fill me-1"></i> Kirim Reward
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer bg-white text-center py-3">
-                <a href="#" class="text-decoration-none fw-bold" style="color: #84994F;">Lihat Seluruh Data Pelanggan &rarr;</a>
-            </div>
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="w-10 h-10 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center font-bold border border-gray-200 mr-3">BH</div>
+                                <div>
+                                    <div class="font-bold text-gray-800">Budi Hartono</div>
+                                    <small class="text-gray-500">budi@dummy.com</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4"><span class="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-[#FCB53B] text-gray-800">Pelanggan Baru</span></td>
+                        <td class="px-6 py-4 font-bold text-center text-lg text-gray-800">1</td>
+                        <td class="px-6 py-4 text-gray-800">Rp 150.000</td>
+                        <td class="px-6 py-4 text-gray-500">3 minggu lalu</td>
+                        <td class="px-6 py-4 text-right">
+                            <button class="px-3 py-1.5 text-xs text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors" title="Kirim Hadiah / Diskon Khusus">
+                                <i class="bi bi-gift-fill mr-1"></i> Kirim Reward
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-100 text-center">
+            <a href="#" class="text-sm font-bold text-[#84994F] hover:underline">Lihat Seluruh Data Pelanggan &rarr;</a>
         </div>
     </div>
 </div>

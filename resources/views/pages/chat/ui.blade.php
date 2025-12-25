@@ -1,476 +1,696 @@
-@extends('layout.main')
+@extends('layouts.app')
 
-@section('title', 'Chat Dashboard - ROMS')
+@section('title', 'Chat WhatsApp')
 
-@push('styles')
+@section('content')
+
+{{-- Hidden CSRF Token --}}
+<input type="hidden" id="csrf-token" value="{{ csrf_token() }}">
+
+{{-- Custom CSS for Chat Layout Fix --}}
 <style>
-    /* --- LAYOUT --- */
-    /* --- LAYOUT --- */
-    /* Override Main Content Padding for this page only */
-    .main-content {
-        padding: 0 !important;
-        margin-top: var(--topbar-height);
-        height: calc(100vh - var(--topbar-height));
-        overflow: hidden; /* Disable outer scroll */
-        display: flex;
-        flex-direction: column;
-    }
-
-    /* Ensure container fills the height */
-    .main-content > .container-fluid {
-        height: 100%;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .chat-dashboard {
-        flex: 1; /* Fill the container */
+    /* Main container must have defined height */
+    .chat-main-container {
+        height: calc(100vh - 140px);
         display: flex;
         overflow: hidden;
-        background: #fff;
-        box-shadow: none;
-        min-height: 0; /* Important for nested flex scrolling */
     }
-
-    /* --- COL 1: LIST --- */
-    .col-list {
-        width: 320px;
-        border-right: 1px solid #e9ecef;
+    
+    #empty-state {
         display: flex;
-        flex-direction: column;
-        background: #fff;
-    }
-    .list-header {
-        padding: 15px;
-        border-bottom: 1px solid #f0f2f5;
-    }
-    .list-body {
         flex: 1;
-        overflow-y: auto;
-    }
-    .chat-item {
-        padding: 15px;
-        border-bottom: 1px solid #f8f9fa;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-    .chat-item:hover, .chat-item.active {
-        background: #f0f2f5;
-    }
-    .chat-item.unread {
-        background: #e7f3ff;
-    }
-
-    /* --- COL 2: CHAT WINDOW --- */
-    .col-chat {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: #efe7dd; /* WA BG */
-        background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
-        position: relative;
-    }
-    .chat-header {
-        background: #f0f2f5;
-        padding: 10px 20px;
-        border-bottom: 1px solid #d1d7db;
-        display: flex;
         align-items: center;
-        justify-content: space-between;
-        height: 60px;
+        justify-content: center;
     }
-    .chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 20px;
-        display: flex;
+    
+    #active-chat {
+        display: none;
+        height: 100%;
         flex-direction: column;
     }
-    .chat-input-area {
-        background: #f0f2f5;
-        padding: 10px 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+    
+    #active-chat.show {
+        display: flex !important;
     }
-
-    /* --- COL 3: INFO --- */
-    .col-info {
-        width: 300px;
-        border-left: 1px solid #e9ecef;
-        background: #fff;
-        display: flex;
-        flex-direction: column;
+    
+    #messages-container {
+        flex: 1 1 0%;
         overflow-y: auto;
+        min-height: 0;
     }
-    .info-header {
-        padding: 20px;
-        text-align: center;
-        border-bottom: 1px solid #f0f2f5;
+    
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
     }
-    .info-section {
-        padding: 15px;
-        border-bottom: 1px solid #f8f9fa;
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f1f1;
     }
-    .info-title {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #6c757d;
-        margin-bottom: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
     }
-
-    /* --- COMPONENTS --- */
-    .avatar {
-        width: 45px; height: 45px;
-        border-radius: 50%;
-        background: #0d6efd;
-        color: white;
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Loading overlay */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(229, 221, 213, 0.9);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
-        font-size: 1.1rem;
-    }
-    .msg-bubble {
-        max-width: 75%;
-        padding: 8px 12px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        position: relative;
-        font-size: 14px;
-        line-height: 1.4;
-        box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
-        word-wrap: break-word;
-        word-break: break-word;
-        overflow-wrap: break-word;
-    }
-    .msg-bubble.in { background: #fff; align-self: flex-start; border-top-left-radius: 0; }
-    .msg-bubble.out { background: #d9fdd3; align-self: flex-end; border-top-right-radius: 0; }
-    
-    .order-card {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 10px;
-        font-size: 0.9rem;
-    }
-    .order-status {
-        font-size: 0.75rem;
-        padding: 2px 6px;
-        border-radius: 4px;
+        z-index: 10;
     }
 </style>
-@endpush
 
-@section('main-content')
-<div class="container-fluid p-0">
-    <div class="chat-dashboard">
+{{-- FULL SCREEN CHAT LAYOUT (3 Columns: List | Chat | Info) --}}
+<div class="chat-main-container bg-slate-50 rounded-xl border border-slate-200 shadow-lg">
+    
+    {{-- COLUMN 1: CHAT LIST (Left Sidebar) --}}
+    <div class="w-full md:w-[380px] bg-white border-r border-slate-200 flex flex-col">
+        {{-- Header --}}
+        <div class="px-5 py-4 border-b border-slate-200 flex-shrink-0">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="message-circle" class="h-5 w-5 text-[#84994F]"></i>
+                Pesan
+            </h3>
+        </div>
         
-        {{-- COL 1: LIST --}}
-        <div class="col-list">
-            <div class="list-header">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h5 class="mb-0 fw-bold">Chat</h5>
-                    <button class="btn btn-sm btn-primary rounded-circle"><i class="bi bi-plus-lg"></i></button>
-                </div>
-                <input type="text" class="form-control form-control-sm" placeholder="Cari percakapan...">
+        {{-- Search --}}
+        <div class="px-4 py-3 border-b border-slate-50 flex-shrink-0">
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"></i>
+                <input type="text" id="search-chat" placeholder="Cari kontak..." 
+                    class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#84994F]/30 focus:border-[#84994F] transition">
             </div>
-            <div class="list-body" id="chat-list">
-                @foreach($rooms as $room)
-                <div class="chat-item {{ $room->status == 'new' ? 'unread' : '' }}" onclick="loadChat({{ $room->id }}, this)">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="avatar bg-primary">
-                            {{ strtoupper(substr($room->customer->name ?? 'G', 0, 1)) }}
-                        </div>
-                        <div class="flex-grow-1 overflow-hidden">
-                            <div class="d-flex justify-content-between">
-                                <h6 class="mb-0 text-truncate">{{ $room->customer->name ?? 'Guest' }}</h6>
-                                <small class="text-muted" style="font-size: 11px;">{{ $room->updated_at->format('H:i') }}</small>
-                            </div>
-                            <small class="text-muted text-truncate d-block">
-                                {{ $room->customer->phone }}
-                            </small>
-                        </div>
-                    </div>
+        </div>
+        
+        {{-- Chat List --}}
+        <div id="chat-list" class="flex-1 overflow-y-auto custom-scrollbar">
+            <div class="flex items-center justify-center h-full text-slate-400">
+                <div class="text-center">
+                    <i data-lucide="loader" class="h-8 w-8 mx-auto mb-2 animate-spin"></i>
+                    <p class="text-sm">Memuat percakapan...</p>
                 </div>
-                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- COLUMN 2: CHAT WINDOW (Center) --}}
+    <div id="chat-window" class="flex-1 flex flex-col bg-[#e5ddd5] relative" style="background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');">
+        
+        {{-- Default Empty State --}}
+        <div id="empty-state">
+            <div class="text-center text-slate-400">
+                <div class="mb-4 inline-block p-6 bg-white/50 rounded-full">
+                    <i data-lucide="message-square" class="h-16 w-16"></i>
+                </div>
+                <h4 class="text-xl font-bold text-slate-600 mb-2">WhatsApp Chat</h4>
+                <p class="text-sm">Pilih percakapan untuk mulai chat</p>
             </div>
         </div>
 
-        {{-- COL 2: CHAT WINDOW --}}
-        <div class="col-chat">
-            {{-- EMPTY STATE --}}
-            <div id="chat-empty-state" class="d-flex flex-column align-items-center justify-content-center h-100 text-center p-4">
-                <div class="bg-white p-4 rounded-circle shadow-sm mb-3">
-                    <i class="bi bi-whatsapp fs-1 text-success"></i>
+        {{-- Active Chat Container --}}
+        <div id="active-chat">
+            {{-- Loading Overlay --}}
+            <div id="chat-loading" class="loading-overlay hidden">
+                <div class="text-center">
+                    <i data-lucide="loader" class="h-10 w-10 mx-auto mb-3 animate-spin text-[#84994F]"></i>
+                    <p class="text-sm text-slate-600 font-medium">Memuat pesan...</p>
                 </div>
-                <h4>Selamat Datang di ROMS Chat</h4>
-                <p class="text-muted">Pilih percakapan dari daftar sebelah kiri untuk mulai chatting.</p>
             </div>
-
-            {{-- ACTIVE CHAT CONTENT (Hidden by default) --}}
-            <div id="chat-content" class="d-none flex-column h-100">
-                <div class="chat-header">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="avatar bg-secondary" id="header-avatar">A</div>
-                        <div>
-                            <h6 class="mb-0 fw-bold" id="header-name">Nama Customer</h6>
-                            <small class="text-muted" id="header-status">Online</small>
-                        </div>
+            
+            {{-- Chat Header --}}
+            <div class="bg-[#f0f2f5] border-b border-slate-300 px-5 py-3 flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <div id="chat-avatar" class="w-10 h-10 rounded-full bg-[#84994F] text-white flex items-center justify-center font-bold text-lg">
                     </div>
                     <div>
-                        <button class="btn btn-light btn-sm"><i class="bi bi-search"></i></button>
-                        <button class="btn btn-light btn-sm"><i class="bi bi-three-dots-vertical"></i></button>
-                    </div>
-                </div>
-
-                <div class="chat-messages" id="messages-container">
-                    {{-- Messages injected via JS --}}
-                </div>
-
-                <div class="chat-input-area position-relative">
-                    <!-- Emoji Picker Container (Absolute) -->
-                    <div id="emoji-picker-container" class="position-absolute bottom-100 start-0 mb-2 ms-3 d-none" style="z-index: 1000;">
-                        <emoji-picker></emoji-picker>
-                    </div>
-
-                    <!-- File Preview Container (Absolute) -->
-                    <div id="file-preview-container" class="position-absolute bottom-100 start-0 mb-2 ms-3 p-2 bg-light rounded border d-none" style="z-index: 1000; min-width: 200px;">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="bi bi-file-earmark-text fs-4 text-primary"></i>
-                            <span id="file-preview-name" class="small text-truncate" style="max-width: 150px;">filename.jpg</span>
-                            <button type="button" class="btn-close small ms-auto" onclick="clearFile()"></button>
+                        <h6 id="chat-name" class="font-bold text-slate-800 text-base"></h6>
+                        <div class="flex items-center gap-2">
+                            <small id="chat-phone" class="text-slate-500 text-xs"></small>
+                            <span id="cs-badge" class="hidden text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-bold border border-blue-200">
+                                <i data-lucide="user-check" class="h-3 w-3 inline"></i>
+                                <span id="cs-name-badge"></span>
+                            </span>
                         </div>
                     </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    @if(auth()->user()->role === 'admin')
+                    <button id="btn-reassign-cs" onclick="openReassignModal()" class="hidden text-slate-600 hover:bg-slate-200 p-2 rounded-lg transition" title="Reassign CS">
+                        <i data-lucide="user-cog" class="h-5 w-5"></i>
+                    </button>
+                    @endif
+                    {{-- Info button visible for all users (admin and CS) --}}
+                    <button onclick="toggleInfoPanel()" class="text-slate-600 hover:bg-slate-200 p-2 rounded-lg transition" title="Info Kontak">
+                        <i data-lucide="info" class="h-5 w-5"></i>
+                    </button>
+                </div>
+            </div>
 
-                    <button class="btn btn-light rounded-circle" onclick="toggleEmojiPicker()"><i class="bi bi-emoji-smile"></i></button>
-                    <button class="btn btn-light rounded-circle" onclick="document.getElementById('file-input').click()"><i class="bi bi-paperclip"></i></button>
+            {{-- Messages Area --}}
+            <div id="messages-container" class="flex-1 overflow-y-auto p-5 flex flex-col gap-2 custom-scrollbar">
+                {{-- Messages will be inserted here via JS --}}
+            </div>
+
+            {{-- File Preview (Hidden) --}}
+            <div id="file-preview-container" class="hidden px-5 py-3 bg-slate-100 border-t border-slate-200 flex-shrink-0">
+                <div class="flex items-center gap-3 bg-white px-4 py-3 rounded-lg">
+                    <i data-lucide="file" class="h-5 w-5 text-slate-400"></i>
+                    <span id="file-preview-name" class="flex-1 text-sm text-slate-700"></span>
+                    <button onclick="clearFile()" class="text-red-500 hover:text-red-700">
+                        <i data-lucide="x" class="h-4 w-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Chat Footer (Input) --}}
+            <div class="bg-[#f0f2f5] border-t border-slate-300 px-5 py-3 flex items-center gap-3 flex-shrink-0">
+                {{-- Emoji Button --}}
+                <button onclick="toggleEmojiPicker()" class="text-slate-500 hover:text-slate-700 transition" title="Emoji">
+                    <i data-lucide="smile" class="h-6 w-6"></i>
+                </button>
+                
+                {{-- File Attach --}}
+                <label for="file-input" class="text-slate-500 hover:text-slate-700 transition cursor-pointer" title="Attach">
+                    <i data-lucide="paperclip" class="h-6 w-6"></i>
+                </label>
+                <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(this)">
+                
+                {{-- Message Input --}}
+                <input type="text" id="message-input" 
+                    class="flex-1 border-none rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#84994F]/30 bg-white" 
+                    placeholder="Ketik pesan..." 
+                    onkeypress="handleEnter(event)">
+                
+                {{-- Send Button --}}
+                <button onclick="sendMessage()" 
+                    class="w-11 h-11 flex items-center justify-center rounded-full bg-[#84994F] hover:bg-[#6b7d3f] text-white transition shadow-md">
+                    <i data-lucide="send" class="h-5 w-5"></i>
+                </button>
+            </div>
+        </div>
+
+        {{-- Emoji Picker Container (Hidden) --}}
+        <div id="emoji-picker-container" class="hidden absolute bottom-20 left-20 z-50 bg-white rounded-xl shadow-2xl border border-slate-200">
+            <emoji-picker style="--emoji-size: 1.5rem;"></emoji-picker>
+        </div>
+    </div>
+
+    {{-- COLUMN 3: INFO PANEL (Right Sidebar - Toggle) --}}
+    <div id="info-panel" class="hidden w-[360px] bg-white border-l border-slate-200 flex-col">
+        {{-- Header --}}
+        <div class="px-5 py-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+            <h4 class="font-bold text-slate-800">Info Kontak</h4>
+            <button onclick="toggleInfoPanel()" class="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+
+        {{-- Scrollable Content Area --}}
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+            {{-- Customer Info --}}
+            <div class="px-5 py-6 border-b border-slate-100">
+                <div class="text-center mb-4">
+                    <div id="info-avatar" class="w-20 h-20 rounded-full bg-[#84994F] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3"></div>
+                    <h5 id="info-name" class="font-bold text-slate-800 text-lg"></h5>
+                    <p id="info-phone" class="text-slate-500 text-sm mb-3"></p>
                     
-                    <input type="file" id="file-input" class="d-none" onchange="handleFileSelect(this)">
-                    <input type="text" id="message-input" class="form-control border-0" placeholder="Ketik pesan..." onkeypress="handleEnter(event)">
-                    <button class="btn btn-primary rounded-circle" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+                    {{-- Add/Edit Customer Button --}}
+                    <button onclick="openEditCustomerModal()" id="btn-edit-customer" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition flex items-center gap-2 mx-auto">
+                        <i data-lucide="user-plus" class="h-4 w-4"></i>
+                        <span>Tambahkan sebagai Pelanggan</span>
+                    </button>
+                </div>
+            </div>
+
+            {{-- Customer Details --}}
+            <div class="px-5 py-4 border-b border-slate-100">
+                <h6 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Detail Pelanggan</h6>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <span class="text-slate-500">Email:</span>
+                        <p id="info-email" class="text-slate-800 font-medium">-</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-500">Alamat:</span>
+                        <p id="info-address" class="text-slate-800 font-medium">-</p>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Order History --}}
+            <div class="px-5 py-4">
+                <h6 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Riwayat Pesanan</h6>
+                <div id="order-history" class="space-y-3">
+                    <p class="text-sm text-slate-400 text-center py-4">Belum ada pesanan</p>
                 </div>
             </div>
         </div>
+    </div>
 
-        {{-- COL 3: INFO --}}
-        <div class="col-info">
-            <div id="info-empty-state" class="text-center p-5 text-muted">
-                <i class="bi bi-person-badge fs-1"></i>
-                <p class="mt-2">Info Customer</p>
-            </div>
+</div>
 
-            <div id="info-content" class="d-none">
-                <div class="info-header">
-                    <div class="avatar bg-primary mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;" id="info-avatar">
-                        A
-                    </div>
-                    <h5 class="fw-bold mb-1" id="info-name">Nama Customer</h5>
-                    <p class="text-muted mb-0" id="info-phone">+62 812 3456 7890</p>
-                </div>
+</div>
 
-                <div class="info-section">
-                    <div class="info-title">Status Customer</div>
-                    <div id="info-badges">
-                        <span class="badge bg-secondary">Loading...</span>
-                    </div>
-                </div>
-
-                <div class="info-section">
-                    <div class="info-title d-flex justify-content-between align-items-center">
-                        Riwayat Pesanan
-                        <a href="#" class="text-decoration-none" style="font-size: 0.75rem;">Lihat Semua</a>
-                    </div>
-                    <div id="order-history-list">
-                        {{-- Orders injected via JS --}}
-                    </div>
-                </div>
-            </div>
+{{-- MODAL REASSIGN CS (Admin Only) --}}
+@if(auth()->user()->role === 'admin')
+<div id="modal-reassign-cs" class="hidden fixed inset-0 z-[60] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in-up">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-slate-800">Reassign CS</h3>
+            <button onclick="closeReassignModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
         </div>
+        <form id="form-reassign-cs" onsubmit="saveReassignment(event)" class="p-5 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Pilih CS</label>
+                <select id="select-cs-user" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#84994F]/20 focus:border-[#84994F] outline-none">
+                    <option value="">-- Pilih CS --</option>
+                    @foreach($allCsUsers ?? [] as $csUser)
+                    <option value="{{ $csUser->id }}">{{ $csUser->name }} ({{ $csUser->email }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="pt-3 flex justify-end gap-3">
+                <button type="button" onclick="closeReassignModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-[#84994F] hover:bg-[#6b7d3f] text-white rounded-lg text-sm font-bold shadow-md transition flex items-center gap-2">
+                    <i data-lucide="save" class="h-4 w-4"></i> Assign
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
 
+{{-- MODAL EDIT CUSTOMER --}}
+<div id="modal-edit-customer" class="hidden fixed inset-0 z-[60] bg-black/50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in-up">
+        <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-bold text-slate-800">Data Pelanggan</h3>
+            <button onclick="closeEditCustomerModal()" class="text-slate-400 hover:text-slate-600 focus:outline-none">
+                <i data-lucide="x" class="h-5 w-5"></i>
+            </button>
+        </div>
+        <form id="form-edit-customer" onsubmit="saveCustomer(event)" class="p-5 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Lengkap <span class="text-red-500">*</span></label>
+                <input type="text" id="input-cust-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#84994F]/20 focus:border-[#84994F] outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nomor WhatsApp</label>
+                <input type="text" id="input-cust-phone" readonly class="w-full px-3 py-2 border border-slate-200 bg-slate-50 rounded-lg text-sm text-slate-500 outline-none cursor-not-allowed">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                <input type="email" id="input-cust-email" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#84994F]/20 focus:border-[#84994F] outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Kota</label>
+                    <input type="text" id="input-cust-city" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#84994F]/20 focus:border-[#84994F] outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat</label>
+                    <input type="text" id="input-cust-address" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#84994F]/20 focus:border-[#84994F] outline-none">
+                </div>
+            </div>
+            <div class="pt-3 flex justify-end gap-3">
+                <button type="button" onclick="closeEditCustomerModal()" class="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-[#84994F] hover:bg-[#6b7d3f] text-white rounded-lg text-sm font-bold shadow-md transition flex items-center gap-2">
+                    <i data-lucide="save" class="h-4 w-4"></i> Simpan
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-{{-- Hidden Inputs --}}
-<input type="hidden" id="current-room-id" value="">
-<input type="hidden" id="csrf-token" value="{{ csrf_token() }}">
-
-@endsection
-
 @push('scripts')
+{{-- Emoji Picker --}}
 <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+
+
 <script>
+    // --- GLOBAL STATE ---
     let currentRoomId = null;
+    let currentCustomer = null;
+    let allChatRooms = []; // Store all rooms for searching
 
-    // --- 1. LOAD CHAT ---
-    function loadChat(roomId, element) {
-        // UI Active State
-        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
-        element.classList.add('active');
+    // --- HELPER: Init Lucide Icons Safely ---
+    function initLucide() {
+    if (typeof window.lucide !== 'undefined' && 
+        window.lucide.createIcons && 
+        window.lucide.icons) {
+        try {
+            window.lucide.createIcons({ icons: window.lucide.icons });
+        } catch (e) {
+            console.error('Lucide init error:', e);
+        }
+    } else {
+        console.warn('Lucide not fully loaded. Available:', window.lucide);
+    }
+}
 
-        // Stop previous polling if any (logic handled by currentRoomId check)
-        currentRoomId = roomId;
-        lastMessageId = 0; // Reset last message ID
-        isPollingChat = false; // Reset polling flag to allow new poll to start
+    // --- SEARCH FUNCTIONALITY ---
+    document.getElementById('search-chat').addEventListener('input', function(e) {
+        const query = e.target.value.toLowerCase().trim();
+        filterChatList(query);
+    });
 
-        // Fetch Data (Initial Load)
-        fetch(`/app/chat/room/${roomId}/data`)
-            .then(response => response.json())
-            .then(data => {
-                renderChatUI(data);
-                // Start Polling for this room
-                pollActiveChat();
-            })
-            .catch(err => console.error('Error loading chat:', err));
+    function filterChatList(query) {
+        if (!query) {
+            renderChatList(allChatRooms);
+            return;
+        }
+
+        const filtered = allChatRooms.filter(room => {
+            const customer = room.customer || {};
+            const name = (customer.name || '').toLowerCase();
+            const phone = (customer.phone || '').toLowerCase();
+            return name.includes(query) || phone.includes(query);
+        });
+
+        renderChatList(filtered);
     }
 
-    function renderChatUI(data) {
-        const room = data.room;
-        const messages = data.messages;
-        const orders = data.orders;
-        const customer = room.customer;
-
-        currentRoomId = room.id;
-        document.getElementById('current-room-id').value = room.id;
-
-        // --- RENDER MIDDLE COL (CHAT) ---
-        document.getElementById('chat-empty-state').classList.add('d-none');
-        document.getElementById('chat-content').classList.remove('d-none');
-        document.getElementById('chat-content').classList.add('d-flex');
-
-        // Header
-        document.getElementById('header-name').innerText = customer.name;
-        document.getElementById('header-avatar').innerText = customer.name.charAt(0).toUpperCase();
+    // --- 1. LOAD CHAT DATA (Initially + on Click) ---
+    function loadChat(roomId, element) {
+        currentRoomId = roomId;
         
-        // Messages
-        const msgContainer = document.getElementById('messages-container');
-        msgContainer.innerHTML = ''; // Clear old messages
+        // RESET lastMessageId when switching rooms
+        lastMessageId = 0;
+        
+        // Optimistic UI Update: Mark as read locally
+        const roomIndex = allChatRooms.findIndex(r => r.id === roomId);
+        if (roomIndex !== -1) {
+            allChatRooms[roomIndex].unread_count = 0;
+            allChatRooms[roomIndex].status = 'read'; // Optional: update status too if needed
+            
+            // Re-render list to remove badge immediately
+            const searchInput = document.getElementById('search-chat');
+            const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+            if (query) {
+                filterChatList(query);
+            } else {
+                renderChatList(allChatRooms);
+            }
+        }
+
+        // Trigger notification update in header (if function exists)
+        if (typeof pollNotifications === 'function') {
+            setTimeout(pollNotifications, 1000); // Delay slightly to allow backend to process
+        }
+        
+        // Mark active in list
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active', 'bg-slate-100'));
+        if (element) {
+            element.classList.add('active', 'bg-slate-100');
+        }
+
+        // Show active chat, hide empty state
+        const emptyState = document.getElementById('empty-state');
+        const activeChat = document.getElementById('active-chat');
+        const chatLoading = document.getElementById('chat-loading');
+        
+        emptyState.style.display = 'none';
+        activeChat.classList.add('show');
+        
+        // Show loading
+        chatLoading.classList.remove('hidden');
+        chatLoading.style.display = 'flex'; 
+        
+        // Clear previous messages
+        document.getElementById('messages-container').innerHTML = '';
+        
+        // Fetch chat data - IMPORTANT: WITHOUT polling parameter to get ALL messages
+        fetch(`/app/chat/room/${roomId}/data`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => {
+                
+                if (!data.room) {
+                    console.error('Room data not found');
+                    chatLoading.classList.add('hidden');
+                    alert('Chat room not found');
+                    return;
+                }
+                
+                // Customer is in room.customer, not data.customer
+                const customer = data.room.customer || {
+                    name: 'Unknown',
+                    phone: 'Unknown',
+                    email: '-',
+                    address: '-',
+                    city: '-',
+                    is_contact: true // Assume contact if unknown
+                };
+                
+                currentCustomer = customer;
+                
+                // Update header with proper avatar
+                const initial = customer.name ? customer.name.charAt(0).toUpperCase() : '?';
+                const avatarEl = document.getElementById('chat-avatar');
+                avatarEl.innerText = initial;
+                avatarEl.className = 'w-10 h-10 rounded-full bg-[#84994F] text-white flex items-center justify-center font-bold text-lg';
+                
+                document.getElementById('chat-name').innerText = customer.name || 'Unknown';
+                document.getElementById('chat-phone').innerText = customer.phone || '-';
+                
+                // Display CS Assignment Badge
+                const csBadge = document.getElementById('cs-badge');
+                const csNameBadge = document.getElementById('cs-name-badge');
+                const btnReassign = document.getElementById('btn-reassign-cs');
+                
+                if (data.room.cs_user) {
+                    csNameBadge.innerText = data.room.cs_user.name.split(' ')[0];
+                    csBadge.classList.remove('hidden');
+                } else {
+                    csBadge.classList.add('hidden');
+                }
+                
+                // Show reassign button for admin
+                if (btnReassign) {
+                    btnReassign.classList.remove('hidden');
+                }
+
+                // Update info panel with proper avatar
+                const infoAvatarEl = document.getElementById('info-avatar');
+                infoAvatarEl.innerText = initial;
+                infoAvatarEl.className = 'w-20 h-20 rounded-full bg-[#84994F] text-white flex items-center justify-center font-bold text-2xl mx-auto mb-3';
+                
+                document.getElementById('info-name').innerText = customer.name || 'Unknown';
+                document.getElementById('info-phone').innerText = customer.phone || '-';
+                document.getElementById('info-email').innerText = customer.email || '-';
+                document.getElementById('info-address').innerText = customer.address || '-';
+
+                // [UPDATE] Button Visibility Logic
+                const btnEdit = document.getElementById('btn-edit-customer');
+                if (btnEdit) {
+                    const btnText = btnEdit.querySelector('span');
+                    
+                    // Always show button
+                    btnEdit.classList.remove('hidden');
+                    
+                    if (customer.id) {
+                        if (customer.is_contact) {
+                            // CASE: ChatContact (Unsaved) -> "Tambahkan sebagai Pelanggan" -> Redirect to Create
+                            if (btnText) btnText.innerText = 'Tambahkan sebagai Pelanggan';
+                            btnEdit.onclick = function() {
+                                const safePhone = (customer.phone && customer.phone !== 'Unknown') ? customer.phone : '';
+                                const safeName = (customer.name && customer.name !== 'Unknown') ? customer.name : '';
+                                window.location.href = `{{ route('customers.create') }}?phone=${encodeURIComponent(safePhone)}&name=${encodeURIComponent(safeName)}`;
+                            };
+                        } else {
+                            // CASE: Existing Customer -> "Edit Pelanggan" -> Open Modal
+                            if (btnText) btnText.innerText = 'Edit Pelanggan';
+                            btnEdit.onclick = function() { openEditCustomerModal(); };
+                        }
+                    } else {
+                        // CASE: Ghost room / Unknown -> "Tambahkan sebagai Pelanggan" -> Redirect to Create
+                        if (btnText) btnText.innerText = 'Tambahkan sebagai Pelanggan';
+                        btnEdit.onclick = function() {
+                            // Fallback: Try to get from DOM but sanitise "Unknown"
+                            let phone = document.getElementById('chat-phone').innerText;
+                            let name = document.getElementById('chat-name').innerText;
+                            
+                            if (phone === 'Unknown' || phone === '-') phone = '';
+                            if (name === 'Unknown') name = '';
+
+                            window.location.href = `{{ route('customers.create') }}?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`;
+                        };
+                    }
+                }
+
+                // Render messages - IMPORTANT: Load all messages initially
+                const allMessages = data.messages || [];
+                
+                renderChatUI(allMessages);
+                
+                // Update lastMessageId to the latest message ID
+                if (allMessages.length > 0) {
+                    lastMessageId = Math.max(...allMessages.map(m => m.id || 0));
+                }
+
+                // Render orders
+                try {
+                    renderOrderHistory(data.orders || []);
+                } catch (e) {
+                    console.error('Error rendering orders:', e);
+                }
+
+                // Re-initialize icons
+                initLucide();
+
+                // Start polling for new messages
+                pollActiveChat();
+            })
+            .catch(err => {
+                console.error('Error loading chat:', err);
+                alert('Gagal memuat chat: ' + err.message);
+            })
+            .finally(() => {
+                // FORCE HIDE LOADING using inline style to override CSS classes
+                const loader = document.getElementById('chat-loading');
+                if (loader) {
+                    loader.classList.add('hidden');
+                    loader.style.display = 'none'; // Force override
+                }
+            });
+    }
+
+    function renderChatUI(messages) {
+        const container = document.getElementById('messages-container');
+        container.innerHTML = '';
+        
+        if (!messages || messages.length === 0) {
+            container.innerHTML = '<div class="text-center text-slate-400 py-8"><p class="text-sm">Belum ada pesan</p></div>';
+            return;
+        }
 
         let lastDate = null;
+        window.lastRenderedDate = null; // For polling
 
-        messages.forEach(msg => {
-            // Date Separator Logic
+        messages.forEach((msg, index) => {
+            // Date separator
             const msgDate = new Date(msg.created_at).toDateString();
             if (msgDate !== lastDate) {
-                const separatorHtml = `
-                    <div class="date-separator text-center text-muted my-3" style="font-size: 0.8rem;">
-                        <span class="bg-light px-2 py-1 rounded border">${formatDateSeparator(msg.created_at)}</span>
-                    </div>`;
-                msgContainer.insertAdjacentHTML('beforeend', separatorHtml);
+                const separator = formatDateSeparator(msg.created_at);
+                container.insertAdjacentHTML('beforeend', `
+                    <div class="text-center text-slate-500 my-3">
+                        <span class="inline-block bg-white px-3 py-1 rounded-lg text-xs shadow-sm">${separator}</span>
+                    </div>
+                `);
                 lastDate = msgDate;
+                window.lastRenderedDate = msgDate;
             }
-            // Update global lastRenderedDate saat initial load
-            window.lastRenderedDate = lastDate;
 
-            const isMe = msg.sender_type != 'customer';
-            const bubbleClass = isMe ? 'out' : 'in';
-            const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const isMe = msg.sender_type === 'user';
+            const bubbleClass = isMe ? 'justify-end' : 'justify-start';
+            const bgClass = isMe ? 'bg-[#d9fdd3] rounded-tr-none' : 'bg-white rounded-tl-none';
+            const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
             
             let statusIcon = '';
             if (isMe) {
-                 statusIcon = '<i class="bi bi-check2"></i>';
-                 if (msg.status === 'sent') statusIcon = '<i class="bi bi-check2-all text-secondary"></i>';
-                 if (msg.status === 'read') statusIcon = '<i class="bi bi-check2-all text-primary"></i>';
+                statusIcon = '<i data-lucide="check" class="h-3 w-3"></i>';
+                if (msg.status === 'sent') statusIcon = '<i data-lucide="check-check" class="h-3 w-3 text-slate-600"></i>';
+                if (msg.status === 'read') statusIcon = '<i data-lucide="check-check" class="h-3 w-3 text-blue-500"></i>';
             }
 
             let attachmentHtml = '';
             if (msg.attachment_url) {
                 if (msg.attachment_type === 'image') {
-                    attachmentHtml = `<div class="mb-2"><img src="${msg.attachment_url}" class="img-fluid rounded" style="max-width: 200px; max-height: 200px; object-fit: cover;"></div>`;
+                    attachmentHtml = `<div class="mb-2"><img src="${msg.attachment_url}" class="rounded-lg max-w-[200px] max-h-[200px] object-cover"></div>`;
                 } else {
-                    attachmentHtml = `<div class="mb-2"><a href="${msg.attachment_url}" target="_blank" class="text-decoration-none text-reset p-2 bg-light rounded d-flex align-items-center gap-2"><i class="bi bi-file-earmark-text fs-4"></i> <span class="small">Attachment</span></a></div>`;
+                    attachmentHtml = `<div class="mb-2"><a href="${msg.attachment_url}" target="_blank" class="flex items-center gap-2 p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition text-sm"><i data-lucide="file" class="h-4 w-4"></i><span>Attachment</span></a></div>`;
                 }
             }
 
             const html = `
-                <div class="msg-bubble ${bubbleClass}">
-                    ${attachmentHtml}
-                    ${msg.message_content || ''}
-                    <div class="text-end text-muted" style="font-size: 10px; margin-top: 4px;">${time} ${statusIcon}</div>
-                </div>
-            `;
-            msgContainer.insertAdjacentHTML('beforeend', html);
-        });
-        
-        // Scroll to bottom
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-
-        // --- RENDER RIGHT COL (INFO) ---
-        document.getElementById('info-empty-state').classList.add('d-none');
-        document.getElementById('info-content').classList.remove('d-none');
-
-        document.getElementById('info-name').innerText = customer.name;
-        document.getElementById('info-phone').innerText = customer.phone;
-        document.getElementById('info-avatar').innerText = customer.name.charAt(0).toUpperCase();
-
-        // Status Badges
-        const badgeContainer = document.getElementById('info-badges');
-        if (badgeContainer) {
-            badgeContainer.innerHTML = ''; 
-            const segment = customer.segment || 'Regular';
-            let badgeClass = 'bg-secondary';
-            
-            if (segment === 'Loyal') badgeClass = 'bg-info text-dark';
-            if (segment === 'Big Spender') badgeClass = 'bg-warning text-dark';
-            if (segment === 'New Member') badgeClass = 'bg-success';
-            if (segment === 'Inactive') badgeClass = 'bg-danger';
-
-            badgeContainer.innerHTML = `<span class="badge ${badgeClass}">${segment}</span>`;
-        }
-
-        // Orders
-        const orderList = document.getElementById('order-history-list');
-        orderList.innerHTML = '';
-
-        if (orders.length === 0) {
-            orderList.innerHTML = '<p class="text-muted small text-center my-3">Belum ada pesanan.</p>';
-        } else {
-            orders.forEach(order => {
-                const statusColor = order.status === 'completed' ? 'success' : (order.status === 'pending' ? 'warning' : 'secondary');
-                const html = `
-                    <div class="order-card">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span class="fw-bold text-primary">${order.order_number}</span>
-                            <span class="order-status bg-${statusColor} text-white">${order.status}</span>
-                        </div>
-                        <div class="d-flex justify-content-between small text-muted">
-                            <span>${order.date}</span>
-                            <span>Rp ${order.total_amount}</span>
+                <div class="flex ${bubbleClass}">
+                    <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${bgClass}">
+                        ${attachmentHtml}
+                        <div class="text-sm leading-5 text-slate-800" style="word-break: break-word; overflow-wrap: anywhere;">${escapeHtml(msg.message_content || '')}</div>
+                        <div class="flex items-center justify-end gap-1 mt-1" style="font-size: 11px; color: #667781;">
+                            ${time} ${statusIcon}
                         </div>
                     </div>
-                `;
-                orderList.insertAdjacentHTML('beforeend', html);
-            });
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+
+        // Scroll to bottom
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }
+
+    function renderOrderHistory(orders) {
+        const orderList = document.getElementById('order-history');
+        orderList.innerHTML = '';
+        
+        if (!orders || orders.length === 0) {
+            orderList.innerHTML = '<p class="text-sm text-slate-400 text-center py-4">Belum ada pesanan</p>';
+            return;
         }
+
+        orders.forEach(order => {
+            const statusColors = {
+                'pending': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                'shipped': 'bg-blue-100 text-blue-700 border-blue-200',
+                'completed': 'bg-green-100 text-green-700 border-green-200',
+                'cancelled': 'bg-red-100 text-red-700 border-red-200'
+            };
+            const statusColor = statusColors[order.status] || 'bg-slate-100 text-slate-600 border-slate-200';
+
+            const html = `
+                <div class="p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-slate-200 transition">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="text-xs font-bold text-slate-600">#${order.order_number}</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full ${statusColor} border font-bold">${order.status.toUpperCase()}</span>
+                    </div>
+                    <p class="text-sm font-bold text-slate-800">Rp ${order.total_amount}</p>
+                    <p class="text-xs text-slate-500 mt-1">${order.date}</p>
+                </div>
+            `;
+            orderList.insertAdjacentHTML('beforeend', html);
+        });
     }
 
     // --- 2. SEND MESSAGE & EMOJI & FILE ---
-
-    // Emoji Logic
     function toggleEmojiPicker() {
         const picker = document.getElementById('emoji-picker-container');
-        if (picker) picker.classList.toggle('d-none');
+        if (picker) picker.classList.toggle('hidden');
     }
 
-    // Event Listener for Emoji Click
     document.addEventListener('DOMContentLoaded', () => {
-        const picker = document.querySelector('emoji-picker');
-        if (picker) {
-            picker.addEventListener('emoji-click', event => {
-                const input = document.getElementById('message-input');
-                if (input) {
-                    input.value += event.detail.unicode;
-                    input.focus();
-                    // Opsional: toggleEmojiPicker(); // Jika ingin menutup picker setelah pilih
-                }
-            });
-        }
-    });
+    // Tunggu sebentar untuk memastikan Vite sudah load
+    setTimeout(() => {
+        initLucide();
+    }, 100);
 
-    // File Logic
+    // Emoji picker listener
+    const picker = document.querySelector('emoji-picker');
+    if (picker) {
+        picker.addEventListener('emoji-click', event => {
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.value += event.detail.unicode;
+                input.focus();
+            }
+        });
+    }
+});
+
     let selectedFile = null;
 
     function handleFileSelect(input) {
@@ -479,8 +699,9 @@
             const previewContainer = document.getElementById('file-preview-container');
             const previewName = document.getElementById('file-preview-name');
             if (previewContainer && previewName) {
-                previewContainer.classList.remove('d-none');
+                previewContainer.classList.remove('hidden');
                 previewName.innerText = selectedFile.name;
+                initLucide();
             }
         }
     }
@@ -490,7 +711,7 @@
         const fileInput = document.getElementById('file-input');
         if (fileInput) fileInput.value = '';
         const previewContainer = document.getElementById('file-preview-container');
-        if (previewContainer) previewContainer.classList.add('d-none');
+        if (previewContainer) previewContainer.classList.add('hidden');
     }
 
     function handleEnter(e) {
@@ -507,19 +728,24 @@
         const msgContainer = document.getElementById('messages-container');
         const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
         
-        let contentHtml = message;
+        let contentHtml = escapeHtml(message);
         if (selectedFile) {
-            contentHtml += `<div class="mt-1 small text-muted"><i class="bi bi-paperclip"></i> ${selectedFile.name} (Uploading...)</div>`;
+            contentHtml += `<div class="mt-1 text-xs text-slate-500"><i data-lucide="paperclip" class="h-3 w-3 inline"></i> ${escapeHtml(selectedFile.name)} (Uploading...)</div>`;
         }
 
         const html = `
-            <div class="msg-bubble out opacity-50">
-                ${contentHtml}
-                <div class="text-end text-muted" style="font-size: 10px; margin-top: 4px;">${time} <i class="bi bi-clock"></i></div>
+            <div class="flex justify-end">
+                <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm bg-[#d9fdd3] rounded-tr-none opacity-50 sending-message">
+                    <div class="text-sm">${contentHtml}</div>
+                    <div class="flex items-center justify-end gap-1 mt-1 text-xs text-slate-500">
+                        ${time} <i data-lucide="clock" class="h-3 w-3"></i>
+                    </div>
+                </div>
             </div>
         `;
         msgContainer.insertAdjacentHTML('beforeend', html);
         msgContainer.scrollTop = msgContainer.scrollHeight;
+        initLucide();
         
         // Prepare Data
         const formData = new FormData();
@@ -531,8 +757,8 @@
         // Reset Input
         input.value = '';
         clearFile();
-        const picker = document.getElementById('emoji-picker-container');
-        if (picker && !picker.classList.contains('d-none')) toggleEmojiPicker();
+        const emojiPicker = document.getElementById('emoji-picker-container');
+        if (emojiPicker && !emojiPicker.classList.contains('hidden')) toggleEmojiPicker();
 
         // Send AJAX
         fetch(`/app/chat/room/${currentRoomId}/send-ajax`, {
@@ -545,16 +771,314 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const lastBubble = msgContainer.lastElementChild;
-                lastBubble.classList.remove('opacity-50');
-                lastBubble.querySelector('.bi-clock').className = 'bi bi-check2';
+                // Remove optimistic message and let polling handle it
+                const sendingMsg = msgContainer.querySelector('.sending-message');
+                if (sendingMsg) {
+                    sendingMsg.parentElement.remove();
+                }
+                // Force immediate poll
+                pollActiveChat();
             } else {
                 alert('Gagal mengirim pesan: ' + (data.error || 'Unknown error'));
+                // Remove failed message
+                const sendingMsg = msgContainer.querySelector('.sending-message');
+                if (sendingMsg) {
+                    sendingMsg.parentElement.remove();
+                }
             }
         })
-        .catch(err => console.error('Error sending message:', err));
+        .catch(err => {
+            console.error('Error sending message:', err);
+            const sendingMsg = msgContainer.querySelector('.sending-message');
+            if (sendingMsg) {
+                sendingMsg.parentElement.remove();
+            }
+        });
     }
-    // --- HELPER FUNCTIONS FOR DATE ---
+
+    // --- 3. REAL-TIME LONG POLLING ---
+    let lastListUpdate = 0;
+    let lastGlobalMsgId = 0;
+    let lastMessageId = 0;
+    let isPollingList = false;
+    let isPollingChat = false;
+
+    // Start Polling - CHANGED: Call initial load first, then start polling
+    loadChatListInitial();
+
+    // A. Initial Load (without polling parameter)
+    function loadChatListInitial() {
+        
+        fetch(`/app/chat/rooms`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                
+                if (data.rooms) {
+                    lastListUpdate = data.last_updated_at || Date.now();
+                    lastGlobalMsgId = data.last_global_msg_id || 0;
+                    
+                    // Store globally
+                    allChatRooms = data.rooms;
+
+                    // [FIX] Frontend Sorting for Initial Load: Ensure correct order on refresh
+                    allChatRooms.sort((a, b) => {
+                        const timeA = a.latest_message ? new Date(a.latest_message.created_at).getTime() : new Date(a.updated_at).getTime();
+                        const timeB = b.latest_message ? new Date(b.latest_message.created_at).getTime() : new Date(b.updated_at).getTime();
+                        return timeB - timeA; // Descending
+                    });
+
+                    renderChatList(allChatRooms);
+                    
+                    // Now start polling for updates
+                    setTimeout(pollChatList, 2000);
+                } else {
+                    console.error('No rooms data in response');
+                    showChatListError('Gagal memuat daftar chat');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading initial chat list:', err);
+                showChatListError('Gagal memuat chat: ' + err.message);
+            });
+    }
+
+    // Helper: Render Chat List
+    function renderChatList(rooms) {
+        const listBody = document.getElementById('chat-list');
+        
+        if (!rooms || rooms.length === 0) {
+            listBody.innerHTML = `
+                <div class="flex items-center justify-center h-full text-slate-400">
+                    <div class="text-center">
+                        <i data-lucide="inbox" class="h-12 w-12 mx-auto mb-3 opacity-50"></i>
+                        <p class="text-sm">Belum ada percakapan</p>
+                    </div>
+                </div>
+            `;
+            initLucide();
+            return;
+        }
+        
+        let html = '';
+        rooms.forEach(room => {
+            const isActive = (currentRoomId == room.id);
+            // Use unread_count from backend, BUT ignore if active (we are reading it)
+            const hasUnread = (room.unread_count > 0) && !isActive;
+            const unreadClass = hasUnread ? 'unread' : '';
+            
+            const latestMsgObj = room.latest_message;
+            const displayTime = latestMsgObj ? latestMsgObj.created_at : room.updated_at;
+            const time = formatChatListTime(displayTime);
+            const customerName = room.customer.name || room.customer.phone || 'Unknown';
+            const latestMsg = latestMsgObj ? (latestMsgObj.message_content || 'File') : room.customer.phone;
+            const initial = customerName.charAt(0).toUpperCase();
+            
+            // CS Assignment Badge
+            const csUser = room.cs_user;
+            const csBadge = csUser ? `
+                <div class="flex items-center gap-1 mt-1">
+                    <span class="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold border border-blue-100">
+                        <i data-lucide="user-check" class="h-2.5 w-2.5 inline"></i> ${escapeHtml(csUser.name.split(' ')[0])}
+                    </span>
+                </div>
+            ` : '';
+
+            html += `
+                <div class="chat-item ${unreadClass} px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition ${isActive ? 'bg-slate-100 active' : ''}" onclick="loadChat(${room.id}, this)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-[#84994F] text-white flex items-center justify-center font-bold flex-shrink-0">
+                            ${initial}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-baseline mb-1">
+                                <h6 class="font-bold text-slate-800 text-sm truncate ${hasUnread ? 'font-extrabold' : ''}">${escapeHtml(customerName)}</h6>
+                                <small class="text-slate-400 text-xs flex-shrink-0 ml-2">${time}</small>
+                            </div>
+                            <small class="text-slate-500 text-xs truncate block ${hasUnread ? 'font-bold text-slate-800' : ''}">${escapeHtml(latestMsg)}</small>
+                            ${csBadge}
+                        </div>
+                        ${hasUnread ? `
+                            <div class="flex flex-col items-end gap-1">
+                                <div class="w-5 h-5 rounded-full bg-[#84994F] text-white text-[10px] font-bold flex items-center justify-center">
+                                    ${room.unread_count > 99 ? '99+' : room.unread_count}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        listBody.innerHTML = html;
+        initLucide(); // Re-init icons for badges
+    }
+
+    // Helper: Show Chat List Error
+    function showChatListError(message) {
+        const listBody = document.getElementById('chat-list');
+        listBody.innerHTML = `
+            <div class="flex items-center justify-center h-full text-red-500">
+                <div class="text-center">
+                    <i data-lucide="alert-circle" class="h-12 w-12 mx-auto mb-3"></i>
+                    <p class="text-sm font-medium">${message}</p>
+                    <button onclick="location.reload()" class="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg text-xs hover:bg-red-600">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        `;
+        initLucide();
+    }
+
+    // A. Polling List Chat
+    function pollChatList() {
+        if (isPollingList) return;
+        isPollingList = true;
+
+        fetch(`/app/chat/rooms?last_updated_at=${lastListUpdate}&last_global_msg_id=${lastGlobalMsgId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'no_update') {
+                    isPollingList = false;
+                    setTimeout(pollChatList, 2000);
+                    return;
+                }
+
+                if (data.rooms) {
+                    lastListUpdate = data.last_updated_at;
+                    lastGlobalMsgId = data.last_global_msg_id || lastGlobalMsgId;
+                    
+                    // Update global data
+                    allChatRooms = data.rooms;
+
+                    // [BARU] Frontend Sorting: Pastikan yang terbaru selalu di atas
+                    // Sort berdasarkan latest_message.created_at atau updated_at
+                    allChatRooms.sort((a, b) => {
+                        const timeA = a.latest_message ? new Date(a.latest_message.created_at).getTime() : new Date(a.updated_at).getTime();
+                        const timeB = b.latest_message ? new Date(b.latest_message.created_at).getTime() : new Date(b.updated_at).getTime();
+                        return timeB - timeA; // Descending (Paling baru di atas)
+                    });
+                    
+                    // Check if search is active
+                    const searchInput = document.getElementById('search-chat');
+                    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+                    
+                    if (query) {
+                        filterChatList(query);
+                    } else {
+                        renderChatList(allChatRooms);
+                    }
+
+                    // [BARU] Trigger update notifikasi di header agar sinkron
+                    if (typeof pollNotifications === 'function') {
+                        pollNotifications();
+                    }
+                }
+
+                isPollingList = false;
+                setTimeout(pollChatList, 2000);
+            })
+            .catch(err => {
+                console.error('Polling List Error:', err);
+                isPollingList = false;
+                setTimeout(pollChatList, 5000);
+            });
+    }
+
+    // B. Polling Active Chat
+    function pollActiveChat() {
+        if (!currentRoomId || isPollingChat) return;
+        isPollingChat = true;
+
+        fetch(`/app/chat/room/${currentRoomId}/data?polling=1&last_message_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'no_update') {
+                    isPollingChat = false;
+                    if (currentRoomId) setTimeout(pollActiveChat, 2000);
+                    return;
+                }
+
+                if (data.messages && data.messages.length > 0) {
+                    lastMessageId = data.last_message_id;
+                    const messages = data.messages;
+                    const msgContainer = document.getElementById('messages-container');
+                    
+                    const isAtBottom = (msgContainer.scrollHeight - msgContainer.scrollTop) <= (msgContainer.clientHeight + 50);
+
+                    // Render new messages
+                    messages.forEach(msg => {
+                        const msgDate = new Date(msg.created_at).toDateString();
+                        
+                        if (typeof window.lastRenderedDate === 'undefined') window.lastRenderedDate = null;
+                        
+                        if (msgDate !== window.lastRenderedDate) {
+                            msgContainer.insertAdjacentHTML('beforeend', `
+                                <div class="text-center text-slate-500 my-3">
+                                    <span class="inline-block bg-white px-3 py-1 rounded-lg text-xs shadow-sm">${formatDateSeparator(msg.created_at)}</span>
+                                </div>
+                            `);
+                            window.lastRenderedDate = msgDate;
+                        }
+
+                        const isMe = msg.sender_type != 'customer';
+                        const bubbleClass = isMe ? 'justify-end' : 'justify-start';
+                        const bgClass = isMe ? 'bg-[#d9fdd3] rounded-tr-none' : 'bg-white rounded-tl-none';
+                        const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
+                        
+                        let statusIcon = '';
+                        if (isMe) {
+                            statusIcon = '<i data-lucide="check" class="h-3 w-3"></i>';
+                            if (msg.status === 'sent') statusIcon = '<i data-lucide="check-check" class="h-3 w-3 text-slate-600"></i>';
+                            if (msg.status === 'read') statusIcon = '<i data-lucide="check-check" class="h-3 w-3 text-blue-500"></i>';
+                        }
+
+                        let attachmentHtml = '';
+                        if (msg.attachment_url) {
+                            if (msg.attachment_type === 'image') {
+                                attachmentHtml = `<div class="mb-2"><img src="${msg.attachment_url}" class="rounded-lg max-w-[200px] max-h-[200px] object-cover"></div>`;
+                            } else {
+                                attachmentHtml = `<div class="mb-2"><a href="${msg.attachment_url}" target="_blank" class="flex items-center gap-2 p-2 bg-slate-100 rounded-lg hover:bg-slate-200 transition text-sm"><i data-lucide="file" class="h-4 w-4"></i><span>Attachment</span></a></div>`;
+                            }
+                        }
+
+                        const html = `
+                            <div class="flex ${bubbleClass}">
+                                <div class="max-w-[70%] px-3 py-2 rounded-lg shadow-sm ${bgClass}">
+                                    ${attachmentHtml}
+                                    <div class="text-sm leading-5 text-slate-800 break-words">${escapeHtml(msg.message_content || '')}</div>
+                                    <div class="flex items-center justify-end gap-1 mt-1" style="font-size: 11px; color: #667781;">
+                                        ${time} ${statusIcon}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        msgContainer.insertAdjacentHTML('beforeend', html);
+                    });
+
+                    initLucide();
+
+                    if (isAtBottom) {
+                        msgContainer.scrollTop = msgContainer.scrollHeight;
+                    }
+                }
+
+                isPollingChat = false;
+                if (currentRoomId) setTimeout(pollActiveChat, 2000);
+            })
+            .catch(err => {
+                console.error('Polling Chat Error:', err);
+                isPollingChat = false;
+                if (currentRoomId) setTimeout(pollActiveChat, 5000);
+            });
+    }
+
+    // --- HELPER FUNCTIONS ---
     function formatChatListTime(dateString) {
         const date = new Date(dateString);
         const now = new Date();
@@ -569,7 +1093,7 @@
         } else if (isYesterday) {
             return 'Kemarin';
         } else {
-            return date.toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: '2-digit'}); // 28/11/24
+            return date.toLocaleDateString('id-ID', {day: '2-digit', month: '2-digit', year: '2-digit'});
         }
     }
 
@@ -587,212 +1111,197 @@
         } else if (isYesterday) {
             return 'Kemarin';
         } else {
-            return date.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'}); // 28 November 2024
+            return date.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
         }
     }
 
-    // --- 3. REAL-TIME LONG POLLING (List & Chat) ---
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Toggle Info Panel
+    function toggleInfoPanel() {
+        const panel = document.getElementById('info-panel');
+        panel.classList.toggle('hidden');
+        panel.classList.toggle('flex');
+        initLucide();
+    }
+
+
+    // --- CUSTOMER MODAL FUNCTIONS ---
+    function openEditCustomerModal() {
+        if (!currentCustomer) return;
+        
+        const modal = document.getElementById('modal-edit-customer');
+        const form = document.getElementById('form-edit-customer');
+        
+        // Fill form
+        document.getElementById('input-cust-name').value = (currentCustomer.name === currentCustomer.phone) ? '' : currentCustomer.name;
+        
+        const phoneInput = document.getElementById('input-cust-phone');
+        phoneInput.value = currentCustomer.phone;
+        
+        // Allow editing phone if unknown
+        if (currentCustomer.phone === 'Unknown' || !currentCustomer.phone) {
+            phoneInput.readOnly = false;
+            phoneInput.classList.remove('bg-slate-50', 'cursor-not-allowed');
+            phoneInput.value = ''; // Clear it
+        } else {
+            phoneInput.readOnly = true;
+            phoneInput.classList.add('bg-slate-50', 'cursor-not-allowed');
+        }
+
+        document.getElementById('input-cust-email').value = currentCustomer.email || '';
+        document.getElementById('input-cust-city').value = currentCustomer.city || '';
+        document.getElementById('input-cust-address').value = currentCustomer.address || '';
+        
+        modal.classList.remove('hidden');
+    }
+
+    function closeEditCustomerModal() {
+        document.getElementById('modal-edit-customer').classList.add('hidden');
+    }
+
+    function saveCustomer(e) {
+        e.preventDefault();
+        if (!currentCustomer) return;
+
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="h-4 w-4 animate-spin"></i> Menyimpan...';
+        initLucide();
+
+        const payload = {
+            name: document.getElementById('input-cust-name').value,
+            phone: document.getElementById('input-cust-phone').value, // Include phone
+            email: document.getElementById('input-cust-email').value,
+            city: document.getElementById('input-cust-city').value,
+            address: document.getElementById('input-cust-address').value,
+            is_contact: currentCustomer.is_contact,
+            _token: '{{ csrf_token() }}'
+        };
+
+        let url;
+        if (currentCustomer.id) {
+             url = `/app/chat/customer/${currentCustomer.id}/update`;
+        } else {
+             // New endpoint for ghost rooms
+             url = `/app/chat/room/${currentRoomId}/create-customer`;
+        }
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update local data
+                currentCustomer = data.customer;
+                
+                // Update UI Info Panel
+                const customerName = currentCustomer.name || currentCustomer.phone;
+                document.getElementById('info-name').innerText = customerName;
+                document.getElementById('info-avatar').innerText = customerName.charAt(0).toUpperCase();
+                document.getElementById('info-email').innerText = currentCustomer.email || '-';
+                document.getElementById('info-address').innerText = currentCustomer.address || '-';
+                
+                // Update Button Text
+                const btnEdit = document.getElementById('btn-edit-customer');
+                const btnText = btnEdit.querySelector('span');
+                btnText.innerText = 'Edit Pelanggan';
+
+                // Update List Chat (Name might change)
+                const roomIndex = allChatRooms.findIndex(r => r.id == currentRoomId);
+                if (roomIndex !== -1) {
+                    allChatRooms[roomIndex].customer.name = currentCustomer.name;
+                    renderChatList(allChatRooms);
+                }
+
+                closeEditCustomerModal();
+                // Show success toast (optional)
+                alert('Data pelanggan berhasil disimpan!');
+            } else {
+                alert('Gagal menyimpan: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Terjadi kesalahan saat menyimpan data.');
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        initLucide();
+        });
+    }
+
+    // --- REASSIGN CS MODAL (Admin Only) ---
+function openReassignModal() {
+    const modal = document.getElementById('modal-reassign-cs');
+    if (modal) {
+        modal.classList.remove('hidden');
+        initLucide();
+    }
+}
+function closeReassignModal() {
+    const modal = document.getElementById('modal-reassign-cs');
+    if (modal) {
+        modal.classList.add('hidden');
+        const form = document.getElementById('form-reassign-cs');
+        if (form) form.reset();
+    }
+}
+function saveReassignment(event) {
+    event.preventDefault();
     
-    let lastListUpdate = 0;
-    let lastGlobalMsgId = 0; // [NEW] Untuk deteksi pesan baru lebih akurat
-    let lastMessageId = 0;
-    let isPollingList = false;
-    let isPollingChat = false;
-
-    // Start Polling
-    pollChatList();
-
-    // A. Polling List Chat (Short Polling / Periodic)
-    function pollChatList() {
-        if (isPollingList) return;
-        isPollingList = true;
-
-        fetch(`/app/chat/rooms?last_updated_at=${lastListUpdate}&last_global_msg_id=${lastGlobalMsgId}`)
-            .then(response => response.json())
-            .then(data => {
-                // Jika status no_update, berarti tidak ada perubahan
-                if (data.status === 'no_update') {
-                    isPollingList = false;
-                    setTimeout(pollChatList, 2000); // Cek lagi 2 detik kemudian
-                    return;
-                }
-
-                if (data.rooms) {
-                    lastListUpdate = data.last_updated_at;
-                    lastGlobalMsgId = data.last_global_msg_id || lastGlobalMsgId; // Update ID global
-                    const rooms = data.rooms;
-                    const listBody = document.getElementById('chat-list');
-                    
-                    let html = '';
-                    rooms.forEach(room => {
-                        const isActive = (currentRoomId == room.id) ? 'active' : '';
-                        const unreadClass = (room.status == 'new') ? 'unread' : '';
-                        const latestMsgObj = room.latest_message;
-                        const displayTime = latestMsgObj ? latestMsgObj.created_at : room.updated_at;
-                        const time = formatChatListTime(displayTime);
-                        const customerName = room.customer.name;
-                        const latestMsg = latestMsgObj ? latestMsgObj.message_content : room.customer.phone;
-
-                        html += `
-                            <div class="chat-item ${isActive} ${unreadClass}" onclick="loadChat(${room.id}, this)">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="avatar bg-primary">
-                                        ${customerName.charAt(0).toUpperCase()}
-                                    </div>
-                                    <div class="flex-grow-1 overflow-hidden">
-                                        <div class="d-flex justify-content-between">
-                                            <h6 class="mb-0 text-truncate">${customerName}</h6>
-                                            <small class="text-muted" style="font-size: 11px;">${time}</small>
-                                        </div>
-                                        <small class="text-muted text-truncate d-block">
-                                            ${latestMsg}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    listBody.innerHTML = html;
-                }
-
-                // Lanjut polling lagi setelah delay
-                isPollingList = false;
-                setTimeout(pollChatList, 2000);
-            })
-            .catch(err => {
-                console.error('Polling List Error:', err);
-                isPollingList = false;
-                setTimeout(pollChatList, 5000); // Jika error, tunggu lebih lama
-            });
+    const csUserId = document.getElementById('select-cs-user').value;
+    if (!csUserId || !currentRoomId) {
+        alert('Pilih CS terlebih dahulu');
+        return;
     }
-
-    // B. Polling Active Chat (Short Polling / Periodic)
-    function pollActiveChat() {
-        if (!currentRoomId || isPollingChat) return;
-        isPollingChat = true;
-
-        fetch(`/app/chat/room/${currentRoomId}/data?polling=1&last_message_id=${lastMessageId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'no_update') {
-                    isPollingChat = false;
-                    if (currentRoomId) setTimeout(pollActiveChat, 2000);
-                    return;
-                }
-
-                if (data.messages) {
-                    lastMessageId = data.last_message_id;
-                    const messages = data.messages;
-                    const msgContainer = document.getElementById('messages-container');
-                    
-                    const currentScroll = msgContainer.scrollTop;
-                    const isAtBottom = (msgContainer.scrollHeight - msgContainer.scrollTop) <= (msgContainer.clientHeight + 50);
-
-                    let html = '';
-                    let lastDate = null;
-                    // Ambil tanggal terakhir dari pesan yang sudah ada di DOM (jika ada) untuk separator
-                    // Namun karena kita append, kita perlu tahu tanggal pesan terakhir di UI.
-                    // Simplifikasi: Kita cek tanggal pesan pertama di batch baru vs tanggal pesan terakhir di UI.
-                    // Tapi karena short polling fetch *semua* pesan (atau partial?), di sini fetch logicnya:
-                    // /app/chat/room/{id}/messages?last_id={lastMessageId}
-                    // Jadi kita hanya dapat pesan BARU.
-                    
-                    // Cek tanggal pesan terakhir di UI
-                    const lastMsgElement = msgContainer.lastElementChild;
-                    // Kita tidak simpan tanggal di elemen, jadi agak tricky.
-                    // Workaround: Kita anggap pesan baru selalu butuh cek separator vs pesan sebelumnya.
-                    // Tapi kita tidak punya data tanggal pesan sebelumnya di variabel JS.
-                    // Solusi: Kita cek apakah pesan baru beda hari dengan "Hari Ini" (karena polling jalan realtime).
-                    // ATAU: Kita simpan lastDate di variabel global saat loadChat.
-                    
-                    // Untuk simplifikasi polling:
-                    // Jika pesan baru masuk realtime, kemungkinan besar hari ini.
-                    // Kecuali pesan pending dari kemarin baru masuk (jarang).
-                    // Kita pakai logika sederhana: Jika pesan pertama di batch ini beda tanggal dengan pesan terakhir di UI...
-                    // Tapi susah akses DOM date.
-                    
-                    // Revisi: Kita render separator untuk pesan baru jika beda hari dengan pesan sebelumnya DI BATCH INI.
-                    // Dan untuk pesan pertama di batch, kita bandingkan dengan... well, anggap saja "Hari Ini" jika realtime.
-                    // Atau kita cek lastMessageId punya tanggal berapa? Tidak punya datanya.
-                    
-                    // Opsi Aman: Render separator jika tanggal pesan != tanggal hari ini (asumsi chat aktif hari ini).
-                    // Atau: Kita biarkan separator hanya muncul saat load full chat (renderChatUI).
-                    // Saat polling, pesan baru biasanya "Hari Ini".
-                    // Jika ganti hari saat polling (tengah malam), kita perlu separator "Hari Ini".
-                    
-                    // Implementasi:
-                    // Kita simpan lastMessageDate global.
-                    
-                    messages.forEach(msg => {
-                        // Date Separator Logic (Simplified for Polling)
-                        // Kita butuh state lastMessageDate global untuk akurasi antar-polling.
-                        // Tapi untuk sekarang, kita insert separator jika msgDate != lastMessageDate (global).
-                        
-                        const msgDate = new Date(msg.created_at).toDateString();
-                        // Kita perlu akses lastRenderedDate dari scope luar atau DOM.
-                        // Hack: Kita cek apakah ada separator "Hari Ini" di paling bawah?
-                        // Better: Kita tambahkan separator jika msgDate != lastRenderedDate.
-                        
-                        // Mari kita definisikan lastRenderedDate di scope global chat.js/script
-                        if (typeof window.lastRenderedDate === 'undefined') window.lastRenderedDate = null;
-                        
-                        if (msgDate !== window.lastRenderedDate) {
-                             html += `<div class="date-separator text-center text-muted my-3" style="font-size: 0.8rem;">
-                                        <span class="bg-light px-2 py-1 rounded border">${formatDateSeparator(msg.created_at)}</span>
-                                     </div>`;
-                             window.lastRenderedDate = msgDate;
-                        }
-
-                        const isMe = msg.sender_type != 'customer';
-                        const bubbleClass = isMe ? 'out' : 'in';
-                        const time = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: false});
-                        
-                        let statusIcon = '';
-                        if (isMe) {
-                             statusIcon = '<i class="bi bi-check2"></i>';
-                             if (msg.status === 'sent') statusIcon = '<i class="bi bi-check2-all text-secondary"></i>';
-                             if (msg.status === 'read') statusIcon = '<i class="bi bi-check2-all text-primary"></i>';
-                        }
-
-                        let attachmentHtml = '';
-                        if (msg.attachment_url) {
-                            if (msg.attachment_type === 'image') {
-                                attachmentHtml = `<div class="mb-2"><img src="${msg.attachment_url}" class="img-fluid rounded" style="max-width: 200px; max-height: 200px; object-fit: cover;"></div>`;
-                            } else {
-                                attachmentHtml = `<div class="mb-2"><a href="${msg.attachment_url}" target="_blank" class="text-decoration-none text-reset p-2 bg-light rounded d-flex align-items-center gap-2"><i class="bi bi-file-earmark-text fs-4"></i> <span class="small">Attachment</span></a></div>`;
-                            }
-                        }
-
-                        html += `
-                            <div class="msg-bubble ${bubbleClass}">
-                                ${attachmentHtml}
-                                ${msg.message_content || ''}
-                                <div class="text-end text-muted" style="font-size: 10px; margin-top: 4px;">
-                                    ${time} ${statusIcon}
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    if (msgContainer.innerHTML.length !== html.length) {
-                         msgContainer.innerHTML = html;
-                         if (isAtBottom) {
-                             msgContainer.scrollTop = msgContainer.scrollHeight;
-                         } else {
-                             msgContainer.scrollTop = currentScroll;
-                         }
-                    }
-                }
-
-                isPollingChat = false;
-                if (currentRoomId) setTimeout(pollActiveChat, 2000);
-            })
-            .catch(err => {
-                console.error('Polling Chat Error:', err);
-                isPollingChat = false;
-                if (currentRoomId) setTimeout(pollActiveChat, 5000);
-            });
-    }
+    fetch(`/app/chat/room/${currentRoomId}/reassign`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.getElementById('csrf-token').value
+        },
+        body: JSON.stringify({ cs_user_id: csUserId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            closeReassignModal();
+            
+            // Update CS badge in header
+            const csBadge = document.getElementById('cs-badge');
+            const csNameBadge = document.getElementById('cs-name-badge');
+            if (data.cs_user) {
+                csNameBadge.innerText = data.cs_user.name.split(' ')[0];
+                csBadge.classList.remove('hidden');
+                initLucide();
+            }
+            
+            // Refresh chat list to update sidebar
+            pollChatList();
+        } else {
+            alert('Gagal reassign: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(err => {
+        console.error('Error reassigning CS:', err);
+        alert('Terjadi kesalahan saat reassign CS');
+    });
+}
 </script>
 @endpush
+
+@endsection

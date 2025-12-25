@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Route;
 Route::group([], function () {
 
     // 1. Dashboard Statistik CS
-    Route::get('/cs/dashboard', [ChatController::class, 'index'])
-        ->name('chat.dashboard');
+    // [DISABLED] Konflik dengan route utama /cs/dashboard di routes/web.php
+    // Route::get('/cs/dashboard', [ChatController::class, 'index'])
+    //     ->name('chat.dashboard');
 
     // 2. Pintu Masuk: Halaman Koneksi & QR
     Route::get('/chat/connect', [ChatController::class, 'showConnectionPage'])
@@ -41,5 +42,13 @@ Route::group([], function () {
     
     Route::post('/chat/room/{roomId}/send-ajax', [ChatController::class, 'storeAjaxMessage'])
         ->name('chat.room.send-ajax');
+
+    Route::post('/chat/room/{roomId}/create-customer', [ChatController::class, 'createCustomerForRoom'])
+        ->name('chat.room.create-customer');
+    
+    // Admin only: Reassign CS to chat room
+    Route::post('/chat/room/{roomId}/reassign', [ChatController::class, 'reassignCs'])
+        ->middleware('role:admin')
+        ->name('chat.room.reassign');
 
 });

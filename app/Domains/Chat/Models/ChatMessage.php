@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ChatMessage extends Model
 {
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $table = 'chat_messages';
 

@@ -16,11 +16,13 @@ class Order extends Model
         'shipping_address',
         'notes',
         'shipped_at',
+        'delivered_at',
     ];
 
     protected $casts = [
         'total_amount' => 'decimal:2',
         'shipped_at' => 'datetime',
+        'delivered_at' => 'datetime',
     ];
 
     public function customer()
@@ -31,5 +33,10 @@ class Order extends Model
     public function items()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function reminderLogs()
+    {
+        return $this->hasMany(\App\Domains\Reminder\Models\ReminderLog::class);
     }
 }

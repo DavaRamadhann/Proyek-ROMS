@@ -12,15 +12,28 @@ class Reminder extends Model
     protected $fillable = [
         'name',
         'product_id',
+        'cross_sell_product_id',
         'days_after_delivery',
+        'send_time',
         'message_template',
         'is_active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
         'days_after_delivery' => 'integer',
     ];
+
+    /**
+     * Accessor untuk memastikan is_active selalu boolean
+     * meski tidak dicast di $casts (untuk menghindari issue insert Postgres)
+     */
+    public function getIsActiveAttribute($value)
+    {
+        if (is_null($value)) return false;
+        if (is_bool($value)) return $value;
+        if (is_string($value) && $value === 'f') return false;
+        return (bool) $value;
+    }
 
     /**
      * Relasi ke Product (nullable - bisa untuk semua produk)
@@ -43,6 +56,6 @@ class Reminder extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->whereRaw('is_active = true');
     }
 }

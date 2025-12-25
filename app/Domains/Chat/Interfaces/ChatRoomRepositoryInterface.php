@@ -34,4 +34,15 @@ interface ChatRoomRepositoryInterface
      * Ini adalah inti dari logika 'Distribusi Chat'.
      */
     public function assignCsToRoom(int $roomId, int $csId): bool;
+
+    /**
+     * Cari atau buat room untuk customer tertentu.
+     * Jika room sudah ada, kembalikan room yang ada.
+     * Jika belum ada, buat room baru dengan CS assignment round-robin.
+     */
+    public function findOrCreateRoomForCustomer(int $customerId): ChatRoom;
+
+    public function findOrCreateRoomForContact(int $contactId): ChatRoom;
+
+    public function findRoomById(int $roomId): ?ChatRoom;
 }

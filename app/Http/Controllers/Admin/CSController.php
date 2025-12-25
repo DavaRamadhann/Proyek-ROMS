@@ -16,10 +16,18 @@ class CSController extends Controller
     public function index()
     {
         $csUsers = User::where('role', 'cs')
+            ->withCount(['assignedChats']) // Assumes relationship exists
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('admin.cs.index', compact('csUsers'));
+        // Statistics
+        $totalCS = User::where('role', 'cs')->count();
+        $activeCS = User::where('role', 'cs')
+            ->whereRaw('is_online IS TRUE')
+            ->count();
+        $totalChatsAssigned = \App\Domains\Chat\Models\ChatRoom::whereNotNull('cs_user_id')->count();
+
+        return view('admin.cs.index', compact('csUsers', 'totalCS', 'activeCS', 'totalChatsAssigned'));
     }
 
     /**

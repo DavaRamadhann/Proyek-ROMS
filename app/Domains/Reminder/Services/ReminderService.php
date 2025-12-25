@@ -21,9 +21,19 @@ class ReminderService
         // Ambil semua reminder yang aktif
         $reminders = Reminder::active()->get();
 
+        // Jika tidak ada rule sama sekali, buat default rule
+        if ($reminders->isEmpty()) {
+            $defaultRule = Reminder::create([
+                'name' => 'Pengingat Otomatis (Default)',
+                'days_after_delivery' => 30,
+                'message_template' => "Halo {name}, sudah 30 hari sejak pesanan {product_name} Anda. Apakah stok sudah menipis? Yuk pesan lagi!",
+            ]);
+            $reminders->push($defaultRule);
+        }
+
         // Load order items untuk pengecekan produk
         $order->load('items');
-        $orderProductIds = $order->items->pluck('product_id')->toArray(); // Asumsi OrderItem punya product_id (perlu dicek)
+        $orderProductIds = $order->items->pluck('product_id')->toArray();
 
         foreach ($reminders as $reminder) {
             // Logic Pengecekan Produk:
@@ -33,16 +43,31 @@ class ReminderService
             }
 
             // Hitung scheduled_at
-            $scheduledAt = $order->delivered_at->addDays($reminder->days_after_delivery);
+            // Pastikan delivered_at ada, jika tidak pakai created_at atau now() sebagai fallback (sebaiknya delivered_at)
+            $baseDate = $order->delivered_at ?? $order->shipped_at ?? now();
+            $scheduledAt = $baseDate->copy()->addDays($reminder->days_after_delivery);
+            
+            // Set waktu spesifik dari send_time (format HH:MM:SS)
+            if ($reminder->send_time) {
+                $timeParts = explode(':', $reminder->send_time);
+                $scheduledAt->setTime((int)$timeParts[0], (int)$timeParts[1], (int)($timeParts[2] ?? 0));
+            }
 
-            // Buat reminder log
-            ReminderLog::create([
-                'reminder_id' => $reminder->id,
-                'order_id' => $order->id,
-                'customer_id' => $order->customer_id,
-                'scheduled_at' => $scheduledAt,
-                'status' => 'pending',
-            ]);
+            // Cek duplikasi log
+            $exists = ReminderLog::where('order_id', $order->id)
+                ->where('reminder_id', $reminder->id)
+                ->exists();
+
+            if (!$exists) {
+                // Buat reminder log
+                ReminderLog::create([
+                    'reminder_id' => $reminder->id,
+                    'order_id' => $order->id,
+                    'customer_id' => $order->customer_id,
+                    'scheduled_at' => $scheduledAt,
+                    'status' => 'pending',
+                ]);
+            }
         }
     }
 
@@ -53,10 +78,14 @@ class ReminderService
     {
         $replacements = [
             '{customer_name}' => $data['customer_name'] ?? '',
+            '{name}' => $data['customer_name'] ?? '', // Alias
             '{product_name}' => $data['product_name'] ?? '',
             '{order_date}' => $data['order_date'] ?? '',
+            '{order_number}' => $data['order_number'] ?? '',
+            '{total_amount}' => $data['total_amount'] ?? '',
+            '{status}' => $data['status'] ?? '',
             '{days_since}' => $data['days_since'] ?? '',
-            '{recommendation}' => $data['recommendation'] ?? '', // New Variable
+            '{recommendation}' => $data['recommendation'] ?? '',
         ];
 
         return str_replace(

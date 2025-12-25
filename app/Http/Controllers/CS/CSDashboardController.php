@@ -21,8 +21,8 @@ class CSDashboardController extends Controller
         // Total obrolan hari ini
         $todayChatsCount = ChatRoom::whereDate('created_at', today())->count();
         
-        // Pesanan perlu diproses - untuk sementara kita skip karena model Order masih kosong
-        $pendingOrdersCount = 0; // Nanti bisa diupdate ketika Order model sudah ada
+        // Pesanan perlu diproses (status 'pending')
+        $pendingOrdersCount = \App\Domains\Order\Models\Order::where('status', 'pending')->count();
         
         // Total pelanggan aktif (yang punya chat room)
         $activeCustomersCount = Customer::whereHas('chatRooms')->count();

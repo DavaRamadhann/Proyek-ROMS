@@ -38,6 +38,7 @@ class User extends Authenticatable
             'reset_code_expires_at' => 'datetime',
             'password' => 'hashed',
             'is_online' => 'boolean',
+            'is_manual_name' => 'boolean', // PostgreSQL boolean compatibility
         ];
     }
 
@@ -83,4 +84,12 @@ class User extends Authenticatable
     // {
     //     return $this->hasMany(ChatMessage::class, 'sender_id');
     // }
+
+    /**
+     * Chat rooms assigned to this CS user
+     */
+    public function assignedChats()
+    {
+        return $this->hasMany(\App\Domains\Chat\Models\ChatRoom::class, 'cs_user_id');
+    }
 }

@@ -2,144 +2,78 @@
 
 @section('title', 'Beranda CS - ROMS')
 
-@push('styles')
-<style>
-    .dashboard-header {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #333;
-        margin-bottom: 1.5rem;
-    }
-    .info-card {
-        border: none;
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        transition: transform 0.2s;
-        height: 100%;
-    }
-    .info-card:hover {
-        transform: translateY(-5px);
-    }
-    .info-card .card-body {
-        padding: 1.5rem;
-    }
-    .info-label {
-        font-size: 0.9rem;
-        color: #6c757d;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .info-value {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin: 0.5rem 0;
-        color: #333;
-    }
-    .text-maroon { color: #B45253 !important; }
-    .text-green { color: #84994F !important; }
-    .text-gold { color: #FCB53B !important; }
-    
-    .table-card {
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 15px rgba(0,0,0,0.05);
-        overflow: hidden;
-    }
-    .table-header {
-        background-color: #fff;
-        padding: 1.5rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-</style>
-@endpush
-
 @section('main-content')
 
-<h2 class="dashboard-header">Halo, Customer Service! 👋</h2>
+<h2 class="text-3xl font-bold text-gray-900 mb-6">Halo, Customer Service! 👋</h2>
 
-<div class="row g-4 mb-5">
-    <div class="col-lg-4 col-md-6">
-        <div class="card info-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="info-label">Obrolan Menunggu</span>
-                        <h3 class="info-value text-maroon">5</h3>
-                        <small class="text-muted">Perlu respon segera</small>
-                    </div>
-                    <div class="fs-1 text-maroon opacity-25">
-                        <i class="bi bi-chat-dots-fill"></i>
-                    </div>
-                </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:-translate-y-1 transition-transform">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Obrolan Menunggu</span>
+                <h3 class="text-4xl font-bold text-[#B45253] my-2">5</h3>
+                <small class="text-gray-500">Perlu respon segera</small>
+            </div>
+            <div class="text-6xl text-[#B45253] opacity-25">
+                <i class="bi bi-chat-dots-fill"></i>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-4 col-md-6">
-        <div class="card info-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="info-label">Pesanan Baru</span>
-                        <h3 class="info-value text-gold">12</h3>
-                        <small class="text-muted">Menunggu konfirmasi</small>
-                    </div>
-                    <div class="fs-1 text-gold opacity-25">
-                        <i class="bi bi-box-seam-fill"></i>
-                    </div>
-                </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:-translate-y-1 transition-transform">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pesanan Baru</span>
+                <h3 class="text-4xl font-bold text-[#FCB53B] my-2">12</h3>
+                <small class="text-gray-500">Menunggu konfirmasi</small>
+            </div>
+            <div class="text-6xl text-[#FCB53B] opacity-25">
+                <i class="bi bi-box-seam-fill"></i>
             </div>
         </div>
     </div>
 
-    <div class="col-lg-4 col-md-12">
-        <div class="card info-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="info-label">Pelanggan Aktif</span>
-                        <h3 class="info-value text-green">150</h3>
-                        <small class="text-muted">Total database pelanggan</small>
-                    </div>
-                    <div class="fs-1 text-green opacity-25">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
-                </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:-translate-y-1 transition-transform">
+        <div class="flex justify-between items-center">
+            <div>
+                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Pelanggan Aktif</span>
+                <h3 class="text-4xl font-bold text-[#84994F] my-2">150</h3>
+                <small class="text-gray-500">Total database pelanggan</small>
+            </div>
+            <div class="text-6xl text-[#84994F] opacity-25">
+                <i class="bi bi-people-fill"></i>
             </div>
         </div>
     </div>
 </div>
 
-<div class="card table-card">
-    <div class="table-header d-flex justify-content-between align-items-center">
-        <h5 class="fw-bold m-0">Aktivitas Terkini</h5>
-        <a href="{{ route('chat.whatsapp') }}" class="btn btn-sm btn-outline-secondary">Lihat Semua Obrolan</a>
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h5 class="font-bold text-gray-900">Aktivitas Terkini</h5>
+        <a href="{{ route('chat.whatsapp') }}" class="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Lihat Semua Obrolan</a>
     </div>
-    <div class="card-body p-0">
-        <table class="table table-hover align-middle mb-0">
-            <thead class="bg-light">
+    <div>
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b border-gray-200">
                 <tr>
-                    <th class="px-4 py-3">Pelanggan</th>
-                    <th class="px-4 py-3">Aktivitas</th>
-                    <th class="px-4 py-3">Waktu</th>
-                    <th class="px-4 py-3 text-end">Status</th>
+                    <th class="text-left px-6 py-3 font-semibold text-gray-700">Pelanggan</th>
+                    <th class="text-left px-6 py-3 font-semibold text-gray-700">Aktivitas</th>
+                    <th class="text-left px-6 py-3 font-semibold text-gray-700">Waktu</th>
+                    <th class="text-right px-6 py-3 font-semibold text-gray-700">Status</th>
                 </tr>
             </thead>
             <tbody>
-                {{-- Dummy Data --}}
-                <tr>
-                    <td class="px-4"><span class="fw-bold">Ahmad Subagja</span></td>
-                    <td class="px-4 text-muted">Mengirim pesan baru</td>
-                    <td class="px-4">10:30 WIB</td>
-                    <td class="px-4 text-end"><span class="badge bg-danger">Belum Dibaca</span></td>
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-6 py-3"><span class="font-semibold text-gray-900">Ahmad Subagja</span></td>
+                    <td class="px-6 py-3 text-gray-600">Mengirim pesan baru</td>
+                    <td class="px-6 py-3 text-gray-600">10:30 WIB</td>
+                    <td class="px-6 py-3 text-right"><span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Belum Dibaca</span></td>
                 </tr>
-                <tr>
-                    <td class="px-4"><span class="fw-bold">Siti Lestari</span></td>
-                    <td class="px-4 text-muted">Pesanan #ORDER-123 selesai</td>
-                    <td class="px-4">09:15 WIB</td>
-                    <td class="px-4 text-end"><span class="badge bg-success">Selesai</span></td>
+                <tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="px-6 py-3"><span class="font-semibold text-gray-900">Siti Lestari</span></td>
+                    <td class="px-6 py-3 text-gray-600">Pesanan #ORDER-123 selesai</td>
+                    <td class="px-6 py-3 text-gray-600">09:15 WIB</td>
+                    <td class="px-6 py-3 text-right"><span class="inline-block px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Selesai</span></td>
                 </tr>
             </tbody>
         </table>

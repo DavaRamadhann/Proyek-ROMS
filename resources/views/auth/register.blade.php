@@ -218,8 +218,7 @@
                            value="{{ old('email') }}"
                            required
                            placeholder="Masukkan email"
-                           pattern="[a-zA-Z0-9._%+\-]+@gmail\.com"
-                           title="Hanya alamat email @gmail.com yang diizinkan">
+                           placeholder="Masukkan email">
                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
@@ -250,9 +249,9 @@
                 
                 document.getElementById('email').addEventListener('input', function () {
                     const emailField = this;
-                    const pattern = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-                    if (!pattern.test(emailField.value) && emailField.value !== '') {
-                        emailField.setCustomValidity("Hanya alamat email dengan domain @gmail.com yang diizinkan.");
+                    // Allow all email domains
+                    if (emailField.value !== '') {
+                        emailField.setCustomValidity("");
                     } else {
                         emailField.setCustomValidity("");
                     }

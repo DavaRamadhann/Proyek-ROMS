@@ -19,6 +19,10 @@ use App\Domains\Chat\Repositories\ChatRoomRepository;
 use App\Domains\Chat\Interfaces\ChatMessageRepositoryInterface;
 use App\Domains\Chat\Repositories\ChatMessageRepository;
 
+// ChatContact
+use App\Domains\Chat\Interfaces\ChatContactRepositoryInterface;
+use App\Domains\Chat\Repositories\ChatContactRepository;
+
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -42,6 +46,12 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(
             ChatMessageRepositoryInterface::class,
             ChatMessageRepository::class
+        );
+
+        // Bind ChatContact
+        $this->app->bind(
+            ChatContactRepositoryInterface::class,
+            ChatContactRepository::class
         );
 
         // Nanti Repository lain (Order, Reminder) kita daftarkan di sini juga

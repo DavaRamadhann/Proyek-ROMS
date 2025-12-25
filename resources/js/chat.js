@@ -45,8 +45,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            alert('Fitur upload file sedang dalam pengembangan di sisi backend.');
-            fileInput.value = '';
+            const formData = new FormData();
+            formData.append('attachment', file);
+            
+            // Optional: Send text caption if user typed something
+            const text = inputMessage.value.trim();
+            if (text) {
+                formData.append('message_body', text);
+            }
+
+            try {
+                // Show loading state
+                const originalBtnText = sendBtn.innerHTML;
+                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                sendBtn.disabled = true;
+
+                const response = await window.axios.post(`/chat/room/${roomId}/send-ajax`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    inputMessage.value = '';
+                    fileInput.value = '';
+                    autoResizeInput(inputMessage);
+                    
+                    if (!window.Echo) {
+                        appendMessage(response.data.message);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Gagal mengirim file: ' + (error.response?.data?.error || error.message));
+            } finally {
+                sendBtn.innerHTML = originalBtnText;
+                sendBtn.disabled = false;
+                fileInput.value = '';
+            }
         });
     }
 
@@ -81,10 +117,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const check = isMe ? `<i class="bi bi-check2-all ${msg.status === 'read' ? 'text-primary' : 'text-secondary'} ms-1"></i>` : '';
 
+        let attachmentHtml = '';
+        if (msg.attachment_url) {
+            if (msg.attachment_type === 'image') {
+                attachmentHtml = `
+                    <div class="mb-2">
+                        <img src="${msg.attachment_url}" class="img-fluid rounded" style="max-width: 200px; max-height: 200px; object-fit: cover; cursor: pointer;" onclick="window.open(this.src, '_blank')">
+                    </div>
+                `;
+            } else {
+                attachmentHtml = `
+                    <div class="mb-2 p-2 bg-light rounded border d-flex align-items-center">
+                        <i class="bi bi-file-earmark-text fs-3 me-2 text-primary"></i>
+                        <a href="${msg.attachment_url}" target="_blank" class="text-decoration-none text-truncate" style="max-width: 150px;">
+                            Download File
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
         const html = `
             <div class="msg-row ${align}">
                 <div class="msg-bubble ${bubble}">
-                    ${msg.message_content.replace(/\n/g, '<br>')}
+                    ${attachmentHtml}
+                    ${msg.message_content ? msg.message_content.replace(/\n/g, '<br>') : ''}
                     <div class="msg-time">${time} ${check}</div>
                 </div>
             </div>

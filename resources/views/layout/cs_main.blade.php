@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'ROMS CS Dashboard')</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -114,13 +115,8 @@
         <ul class="nav flex-column">
             {{-- Dashboard --}}
             <li class="nav-item">
-                <a class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-                    <i class="bi bi-house-door-fill"></i> Dashboard
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link {{ request()->is('cs/dashboard') ? 'active' : '' }}" href="{{ route('cs.dashboard') }}">
-                    <i class="bi bi-speedometer2"></i> Beranda CS
+                    <i class="bi bi-house-door-fill"></i> Dashboard
                 </a>
             </li>
 
@@ -136,11 +132,6 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.ui') }}">
                     <i class="bi bi-chat-dots-fill"></i> Chat
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {{ request()->is('app/chat*') ? 'active' : '' }}" href="{{ route('chat.ui') }}">
-                    <i class="bi bi-chat-text-fill"></i> Obrolan
                 </a>
             </li>
 

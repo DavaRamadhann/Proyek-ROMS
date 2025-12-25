@@ -20,5 +20,11 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
-/wa-service
-/tests
+
+# dependency
+node_modules/
+
+
+# private services
+wa-service/
+waservice/

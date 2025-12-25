@@ -1,181 +1,153 @@
-@extends('layout.main')
+@extends('layouts.app')
 
 @section('title', 'Tambah Produk')
 
 @section('content')
-<style>
-    .page-header {
-        background: linear-gradient(135deg, #FCB53B 0%, #e09d22 100%);
-        border-radius: 15px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    
-    .breadcrumb-custom {
-        background: rgba(255,255,255,0.1);
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .breadcrumb-custom .breadcrumb {
-        margin: 0;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item,
-    .breadcrumb-custom .breadcrumb-item a {
-        color: rgba(255,255,255,0.9);
-        font-size: 0.9rem;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item.active {
-        color: #fff;
-        font-weight: 500;
-    }
-    
-    .breadcrumb-custom .breadcrumb-item + .breadcrumb-item::before {
-        color: rgba(255,255,255,0.6);
-    }
-    
-    .form-card {
-        border: none;
-        border-radius: 15px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        overflow: hidden;
-    }
-    
-    .form-card .card-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-bottom: 3px solid #FCB53B;
-        padding: 1.25rem 1.5rem;
-    }
-    
-    .form-card .card-body {
-        padding: 2rem;
-    }
-    
-    .form-label {
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-    
-    .form-control, .form-select {
-        border-radius: 8px;
-        border: 2px solid #e9ecef;
-        padding: 0.625rem 1rem;
-        transition: all 0.3s ease;
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: #FCB53B;
-        box-shadow: 0 0 0 0.2rem rgba(252, 181, 59, 0.15);
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, #FCB53B 0%, #e09d22 100%);
-        border: none;
-        padding: 0.625rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        color: #fff;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(252, 181, 59, 0.3);
-    }
-    
-    .btn-secondary {
-        padding: 0.625rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    @media (max-width: 768px) {
-        .page-header {
-            padding: 1.5rem;
-        }
+
+    {{-- HEADER PAGE WITH GRADIENT --}}
+    <div class="mb-5 rounded-2xl bg-gradient-to-br from-[#FCB53B] to-[#e09d22] p-6 shadow-lg md:p-8 text-white">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <h2 class="text-2xl font-bold flex items-center gap-2">
+                    <i data-lucide="plus-circle" class="h-6 w-6"></i> Tambah Produk
+                </h2>
+                <p class="mt-1 text-white/90">Tambahkan produk baru ke dalam inventori.</p>
+            </div>
+        </div>
         
-        .form-card .card-body {
-            padding: 1.5rem;
-        }
-    }
-</style>
-
-<div class="page-header">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
-        <div class="text-white">
-            <h2 class="mb-2">
-                <i class="bi bi-box-seam me-2"></i>Tambah Produk
-            </h2>
-            <p class="mb-0 opacity-75">Tambahkan produk baru ke dalam inventori</p>
+        {{-- Custom Breadcrumb --}}
+        <div class="mt-4 inline-flex rounded-lg bg-white/20 px-4 py-2 backdrop-blur-sm border border-white/10">
+            <nav class="flex text-sm text-white" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-2">
+                    <li class="inline-flex items-center">
+                        <a href="{{ route('dashboard') }}" class="inline-flex items-center hover:text-white/80 transition-colors">
+                            <i data-lucide="home" class="mr-2 h-3.5 w-3.5"></i> Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <i data-lucide="chevron-right" class="h-4 w-4 text-white/60"></i>
+                            <a href="{{ route('product.index') }}" class="ml-1 hover:text-white/80 md:ml-2 transition-colors">Produk</a>
+                        </div>
+                    </li>
+                    <li aria-current="page">
+                        <div class="flex items-center">
+                            <i data-lucide="chevron-right" class="h-4 w-4 text-white/60"></i>
+                            <span class="ml-1 font-bold md:ml-2">Tambah Baru</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
         </div>
     </div>
-    <div class="breadcrumb-custom mt-3">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bi bi-house-door"></i> Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('product.index') }}">Produk</a></li>
-                <li class="breadcrumb-item active">Tambah Produk</li>
-            </ol>
-        </nav>
-    </div>
-</div>
 
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <div class="card form-card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Form Data Produk</h5>
-            </div>
-            <div class="card-body">
-                <form action="{{ route('product.store') }}" method="POST">
-                    @csrf
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Nama Produk <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required placeholder="Contoh: Kopi Arabika 500g">
+    {{-- FORM CARD --}}
+    <div class="flex justify-center pb-20">
+        <div class="w-full">
+            <div class="overflow-hidden rounded-2xl bg-white border border-slate-100 shadow-md">
+                
+                {{-- Card Header --}}
+                <div class="border-b-4 border-[#FCB53B] bg-slate-50 px-6 py-4 flex items-center gap-2">
+                    <div class="p-2 bg-[#FCB53B]/10 rounded-lg text-[#FCB53B]">
+                        <i data-lucide="package-plus" class="h-5 w-5"></i>
                     </div>
+                    <h5 class="font-bold text-slate-700">Form Data Produk</h5>
+                </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">SKU (Stock Keeping Unit) <span class="text-danger">*</span></label>
-                        <input type="text" name="sku" class="form-control" required placeholder="Contoh: KOP-ARB-500">
-                        <small class="text-muted">Kode unik untuk setiap produk.</small>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Harga (Rp) <span class="text-danger">*</span></label>
-                            <input type="number" name="price" class="form-control" required placeholder="0">
+                {{-- Card Body --}}
+                <div class="p-6 md:p-8">
+                    <form action="{{ route('product.store') }}" method="POST">
+                        @csrf
+                        
+                        {{-- Nama Produk --}}
+                        <div class="mb-5">
+                            <label class="mb-2 block text-sm font-bold text-slate-700">
+                                Nama Produk <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="name" class="w-full rounded-lg border @error('name') border-red-500 @else border-slate-200 @enderror px-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200" placeholder="Contoh: Kopi Arabika 500g" value="{{ old('name') }}" required>
+                            @error('name')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @enderror
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Stok Awal <span class="text-danger">*</span></label>
-                            <input type="number" name="stock" class="form-control" required placeholder="0">
+
+                        {{-- SKU --}}
+                        <div class="mb-5">
+                            <label class="mb-2 block text-sm font-bold text-slate-700">
+                                SKU (Stock Keeping Unit) <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="sku" class="w-full rounded-lg border @error('sku') border-red-500 @else border-slate-200 @enderror px-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200" placeholder="Contoh: KOP-ARB-500" value="{{ old('sku') }}" required>
+                            @error('sku')
+                                <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                            @else
+                                <p class="mt-1 text-xs text-slate-400">Kode unik untuk identifikasi stok produk.</p>
+                            @enderror
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Deskripsi</label>
-                        <textarea name="description" class="form-control" rows="3"></textarea>
-                    </div>
+                        {{-- Grid Harga & Stok --}}
+                        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 mb-5">
+                            <div>
+                                <label class="mb-2 block text-sm font-bold text-slate-700">
+                                    Harga (Rp) <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-slate-400 text-sm">Rp</span>
+                                    <input type="number" name="price" class="w-full rounded-lg border @error('price') border-red-500 @else border-slate-200 @enderror pl-10 pr-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200" placeholder="0" value="{{ old('price') }}" required>
+                                    @error('price')
+                                        <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-bold text-slate-700">
+                                    Stok Awal <span class="text-red-500">*</span>
+                                </label>
+                                <input type="number" name="stock" class="w-full rounded-lg border @error('stock') border-red-500 @else border-slate-200 @enderror px-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200" placeholder="0" value="{{ old('stock') }}" required>
+                                @error('stock')
+                                    <p class="mt-1 text-xs text-red-500">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Rekomendasi Cross-sell (Opsional)</label>
-                        <textarea name="recommendation_text" class="form-control" rows="2" placeholder="Contoh: Cobain juga Kopi Robusta kami yang lebih strong!"></textarea>
-                        <small class="text-muted">Teks ini akan muncul otomatis di pesan reminder jika pelanggan membeli produk ini.</small>
-                    </div>
+                        {{-- Deskripsi --}}
+                        <div class="mb-5">
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Deskripsi</label>
+                            <textarea name="description" class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200 resize-none" rows="3" placeholder="Deskripsi singkat produk...">{{ old('description') }}</textarea>
+                        </div>
 
-                    <div class="d-flex justify-content-between mt-4">
-                        <a href="{{ route('product.index') }}" class="btn btn-secondary">Batal</a>
-                        <button type="submit" class="btn btn-primary">Simpan Produk</button>
-                    </div>
-                </form>
+                        {{-- Rekomendasi Cross-sell --}}
+                        <div class="mb-6">
+                            <label class="mb-2 block text-sm font-bold text-slate-700">Rekomendasi Cross-sell (Opsional)</label>
+                            <textarea name="recommendation_text" class="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-700 focus:border-[#FCB53B] focus:outline-none focus:ring-2 focus:ring-[#FCB53B]/50 transition duration-200" rows="2" placeholder="Contoh: Cobain juga Kopi Robusta kami yang lebih strong!">{{ old('recommendation_text') }}</textarea>
+                            <div class="mt-2 flex items-start gap-2 text-xs text-slate-400">
+                                <i data-lucide="info" class="h-4 w-4 flex-shrink-0 mt-0.5"></i>
+                                <span>Teks ini akan muncul otomatis di pesan reminder jika pelanggan membeli produk ini.</span>
+                            </div>
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="mt-8 flex items-center justify-between pt-6 border-t border-slate-100">
+                            <a href="{{ route('product.index') }}" class="rounded-lg bg-slate-100 px-6 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition duration-200">
+                                Batal
+                            </a>
+                            <button type="submit" class="rounded-lg bg-gradient-to-r from-[#FCB53B] to-[#e09d22] px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-100 hover:shadow-lg hover:-translate-y-0.5 transition duration-200 flex items-center gap-2">
+                                <i data-lucide="save" class="h-4 w-4"></i> Simpan Produk
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+    @endpush
+
 @endsection

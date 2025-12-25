@@ -12,10 +12,14 @@ class ProcessScheduledBroadcasts extends Command
     public function handle()
     {
         $now = now();
-        $this->info("Checking for scheduled broadcasts due before {$now}...");
+        $twoMinutesAgo = $now->copy()->subMinutes(2);
+        
+        $this->info("Checking for scheduled broadcasts due between {$twoMinutesAgo} and {$now}...");
 
+        // Process all scheduled broadcasts that are due
         $broadcasts = \App\Domains\Broadcast\Models\Broadcast::where('status', 'scheduled')
             ->where('scheduled_at', '<=', $now)
+            ->orderBy('scheduled_at', 'asc')
             ->get();
 
         if ($broadcasts->isEmpty()) {
@@ -24,7 +28,7 @@ class ProcessScheduledBroadcasts extends Command
         }
 
         foreach ($broadcasts as $broadcast) {
-            $this->info("Processing broadcast: {$broadcast->name} (ID: {$broadcast->id})");
+            $this->info("Processing broadcast: {$broadcast->name} (ID: {$broadcast->id}) scheduled for {$broadcast->scheduled_at}");
             
             // Update status to prevent double processing
             $broadcast->update(['status' => 'processing']);

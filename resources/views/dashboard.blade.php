@@ -1,410 +1,255 @@
-@extends('layout.main')
+@extends('layouts.app')
 
-@section('title', 'Dashboard - ROMS')
+@section('title', 'Dashboard')
 
-@section('search-placeholder', 'Cari menu atau fitur...')
+@section('content')
+    {{-- PAGE HEADER --}}
+    <div class="flex-none mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div> 
+            <div class="mb-2 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#84994F] shadow-sm border border-slate-100">
+                <i data-lucide="layout-dashboard" class="h-3 w-3"></i><span>Ringkasan Bisnis</span>
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                Halo, {{ explode(' ', Auth::user()->name)[0] }}! 👋
+            </h1>
+            <p class="mt-1 text-slate-500">Berikut performa toko dan pesanan terbaru hari ini.</p>
+        </div>
 
-@section('topbar-actions')
-<button class="btn btn-primary" onclick="window.print()">
-    <i class="bi bi-printer me-1"></i><span class="d-none d-lg-inline">Cetak Laporan</span>
-</button>
-@endsection
+        <div class="flex items-center gap-3">
+            {{-- Status WhatsApp / CS --}}
+            @if(Auth::user()->role === 'cs')
+                 <form action="{{ route('cs.status.toggle') }}" method="POST">
+                    @csrf
+                    <button class="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm border border-slate-100 hover:bg-slate-50 transition cursor-pointer">
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ Auth::user()->is_online ? 'bg-[#84994F]' : 'bg-slate-400' }} opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 {{ Auth::user()->is_online ? 'bg-[#84994F]' : 'bg-slate-400' }}"></span>
+                        </span>
+                        <div>
+                            <div class="text-[10px] font-bold uppercase text-slate-400">Status</div>
+                            <div class="text-xs font-bold {{ Auth::user()->is_online ? 'text-[#84994F]' : 'text-slate-500' }}">
+                                {{ Auth::user()->is_online ? 'ONLINE' : 'OFFLINE' }}
+                            </div>
+                        </div>
+                    </button>
+                </form>
+            @else
+                <div class="hidden sm:flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm border border-slate-100">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full {{ ($waStatus ?? 'DISCONNECTED') === 'CONNECTED' ? 'bg-[#84994F]' : 'bg-red-500' }} opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 {{ ($waStatus ?? 'DISCONNECTED') === 'CONNECTED' ? 'bg-[#84994F]' : 'bg-red-500' }}"></span>
+                    </span>
+                    <div>
+                        <div class="text-[10px] font-bold uppercase text-slate-400">WhatsApp</div>
+                        <div class="text-xs font-bold {{ ($waStatus ?? 'DISCONNECTED') === 'CONNECTED' ? 'text-[#84994F]' : 'text-red-500' }}">
+                            {{ ($waStatus ?? 'DISCONNECTED') === 'CONNECTED' ? 'Connected' : 'Disconnected' }}
+                        </div>
+                    </div>
+                </div>
+            @endif
 
-@push('styles')
-<style>
-    .dashboard-header {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #333;
-    }
-    .welcome-card {
-        background: linear-gradient(135deg, #84994F 0%, #6b7d3f 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 30px;
-        margin-bottom: 30px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    .module-card {
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%;
-    }
-    .module-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-    }
-    .module-card .card-body {
-        padding: 25px;
-    }
-    .module-icon {
-        font-size: 2.5rem;
-        margin-bottom: 15px;
-    }
-    .badge-role {
-        background-color: #FCB53B;
-        color: #333;
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-    }
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        border-left: 4px solid;
-        transition: all 0.3s ease;
-    }
-    .stat-card:hover {
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        margin: 10px 0;
-    }
-    .stat-label {
-        color: #6c757d;
-        font-size: 0.9rem;
-        font-weight: 500;
-    }
-</style>
-@endpush
-
-@section('main-content')
-
-<h2 class="dashboard-header mb-4">Dashboard</h2>
-
-<div class="welcome-card">
-    <h3 class="mb-2">Selamat Datang, {{ auth()->user()->name }}! 👋</h3>
-    <p class="mb-0">Anda login sebagai: <span class="badge-role">{{ strtoupper(auth()->user()->role) }}</span></p>
-    <small class="opacity-75">Sistem manajemen pesanan dan pengiriman ROMS</small>
-</div>
-
-{{-- Statistik Cepat --}}
-@if(in_array(auth()->user()->role, ['admin', 'cs']))
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #0d6efd;">
-            <div class="d-flex justify-content-between align-items-start">
+            <div class="flex items-center gap-3 rounded-xl bg-white px-4 py-2 shadow-sm border border-slate-100">
+                <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f1f5f9] text-[#84994F]">
+                    <i data-lucide="calendar" class="h-4 w-4"></i>
+                </div>
                 <div>
-                    <div class="stat-label">Chat Aktif</div>
-                    <div class="stat-value text-primary">0</div>
-                    <small class="text-muted">Obrolan hari ini</small>
+                    <div class="text-[10px] font-bold uppercase text-slate-400">Hari ini</div>
+                    <div class="text-xs font-bold text-slate-700">{{ \Carbon\Carbon::now()->translatedFormat('d M Y') }}</div>
                 </div>
-                <i class="bi bi-chat-dots-fill text-primary" style="font-size: 2rem; opacity: 0.3;"></i>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #84994F;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Total Pelanggan</div>
-                    <div class="stat-value" style="color: #84994F;">0</div>
-                    <small class="text-muted">Data pelanggan</small>
-                </div>
-                <i class="bi bi-people-fill" style="font-size: 2rem; opacity: 0.3; color: #84994F;"></i>
+
+    {{-- STATS CARDS --}}
+    <div class="flex-none grid gap-4 md:grid-cols-3">
+        <div class="relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border-l-4 border-[#84994F] group hover:shadow-md transition-all">
+             <div class="flex justify-between items-start mb-2">
+                <p class="text-xs font-bold text-slate-500 uppercase">Total Omset</p>
+                <div class="text-[#84994F] bg-[#84994F]/10 p-2 rounded-lg"><i data-lucide="banknote" class="h-5 w-5"></i></div>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800">
+                Rp {{ number_format($stats['omset'] ?? 0, 0, ',', '.') }}
+            </h3>
+            <p class="text-[10px] text-[#84994F] font-bold mt-1 flex items-center gap-1">
+                <i data-lucide="trending-up" class="h-3 w-3"></i> +12% vs bulan lalu
+            </p>
+        </div>
+
+        <div class="relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border-l-4 border-[#FCB53B] group hover:shadow-md transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <p class="text-xs font-bold text-slate-500 uppercase">Total Pesanan</p>
+                <div class="text-[#FCB53B] bg-[#FCB53B]/10 p-2 rounded-lg"><i data-lucide="shopping-bag" class="h-5 w-5"></i></div>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800">
+                {{ number_format($stats['total_order'] ?? 0) }}
+            </h3>
+            <p class="text-[10px] text-[#FCB53B] font-bold mt-1 flex items-center gap-1">
+                {{ $stats['pesanan_hari_ini'] ?? 0 }} Pesanan baru
+            </p>
+        </div>
+
+        <div class="relative overflow-hidden rounded-2xl bg-white p-5 shadow-sm border-l-4 border-[#B45253] group hover:shadow-md transition-all">
+            <div class="flex justify-between items-start mb-2">
+                <p class="text-xs font-bold text-slate-500 uppercase">Pelanggan Aktif</p>
+                <div class="text-[#B45253] bg-[#B45253]/10 p-2 rounded-lg"><i data-lucide="users" class="h-5 w-5"></i></div>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-800">
+                {{ number_format($stats['pelanggan_aktif'] ?? 0) }}
+            </h3>
+            <p class="text-[10px] text-slate-400 font-bold mt-1">Total database customer</p>
+        </div>
+    </div>
+
+    {{-- CHART & TABLE --}}
+    <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 pb-6">
+        
+        <div class="lg:col-span-2 rounded-2xl bg-white p-5 shadow-sm border border-slate-100 flex flex-col h-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="font-bold text-slate-800">Trend Penjualan</h3>
+                <button class="text-slate-400 hover:text-[#84994F]"><i data-lucide="more-horizontal" class="h-5 w-5"></i></button>
+            </div>
+            <div class="flex-1 border-b border-slate-50 pb-2 px-2 h-64 relative w-full">
+                <canvas id="salesTrendChart"></canvas>
+            </div>
+        </div>
+
+        <div class="rounded-2xl bg-white shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
+            <div class="p-5 border-b border-slate-50 flex justify-between items-center">
+                <h3 class="font-bold text-slate-800">Pesanan Masuk</h3>
+                <a href="{{ route('orders.index') }}" class="text-xs font-bold text-[#84994F] hover:underline">Semua</a>
+            </div>
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-0">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 sticky top-0">
+                        <tr class="text-[10px] uppercase text-slate-400 font-semibold">
+                            <th class="py-2 px-4">Info</th>
+                            <th class="py-2 px-4 text-right">Total</th>
+                            <th class="py-2 px-4 text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-xs divide-y divide-slate-50">
+                        @forelse($recentOrders as $order)
+                            @php
+                                $statusClass = 'text-slate-500';
+                                $s = strtolower($order->status);
+                                if($s == 'completed' || $s == 'selesai') $statusClass = 'text-[#84994F]';
+                                elseif($s == 'pending' || $s == 'dikemas') $statusClass = 'text-[#FCB53B]';
+                                elseif($s == 'cancelled' || $s == 'batal') $statusClass = 'text-[#B45253]';
+                            @endphp
+
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="py-3 px-4 font-bold text-slate-700">
+                                    #{{ $order->order_number ?? 'ORD-'.$order->id }}
+                                    <div class="text-[10px] font-normal text-slate-500">
+                                        {{ $order->customer->name ?? 'Pelanggan Umum' }}
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-right font-medium">
+                                    Rp {{ number_format($order->total_amount ?? 0, 0, ',', '.') }}
+                                </td>
+                                <td class="py-3 px-4 text-right {{ $statusClass }} font-bold uppercase">
+                                    {{ $order->status }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" class="py-6 text-center text-slate-400">
+                                    Belum ada pesanan terbaru.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #FCB53B;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Total Produk</div>
-                    <div class="stat-value" style="color: #FCB53B;">0</div>
-                    <small class="text-muted">SKU tersedia</small>
-                </div>
-                <i class="bi bi-box-seam-fill" style="font-size: 2rem; opacity: 0.3; color: #FCB53B;"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="stat-card" style="border-left-color: #B45253;">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="stat-label">Pesanan Hari Ini</div>
-                    <div class="stat-value" style="color: #B45253;">0</div>
-                    <small class="text-muted">Order masuk</small>
-                </div>
-                <i class="bi bi-receipt-cutoff" style="font-size: 2rem; opacity: 0.3; color: #B45253;"></i>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
 
-<h4 class="mb-3 fw-bold" style="color: #333;">
-    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Akses Cepat
-</h4>
+    @push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('salesTrendChart').getContext('2d');
+            
+            const chartData = @json($stats['sales_trend']['data'] ?? []);
+            const chartLabels = @json($stats['sales_trend']['labels'] ?? []);
 
-<div class="row g-4">
-    {{-- 1. Kartu Chat CS --}}
-    @if(in_array(auth()->user()->role, ['admin', 'cs']))
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon text-primary">
-                    <i class="bi bi-chat-dots-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Chat CS</h5>
-                <p class="card-text text-muted">Buka inbox untuk melihat dan membalas pesan pelanggan.</p>
-                <a href="{{ route('chat.ui') }}" class="btn btn-primary btn-sm">Buka Inbox</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 2. Kartu Manajemen Pelanggan --}}
-    @if(in_array(auth()->user()->role, ['admin', 'cs']))
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon" style="color: #84994F;">
-                    <i class="bi bi-people-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Pelanggan</h5>
-                <p class="card-text text-muted">Kelola data master pelanggan, riwayat, dan segmen.</p>
-                <a href="{{ route('customers.index') }}" class="btn btn-sm" style="background-color: #84994F; color: white;">Kelola Pelanggan</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 3. Kartu Manajemen Produk --}}
-    @if(in_array(auth()->user()->role, ['admin', 'cs']))
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon" style="color: #FCB53B;">
-                    <i class="bi bi-box-seam-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Produk</h5>
-                <p class="card-text text-muted">Kelola data produk, kode SKU, dan inventaris.</p>
-                <a href="{{ route('product.index') }}" class="btn btn-sm" style="background-color: #FCB53B; color: #333;">Kelola Produk</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 4. Kartu Pesanan --}}
-    @if(in_array(auth()->user()->role, ['admin', 'cs']))
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon" style="color: #B45253;">
-                    <i class="bi bi-receipt-cutoff"></i>
-                </div>
-                <h5 class="card-title fw-bold">Pesanan</h5>
-                <p class="card-text text-muted">Kelola pesanan pelanggan dan tracking pengiriman.</p>
-                <a href="{{ route('orders.index') }}" class="btn btn-sm" style="background-color: #B45253; color: white;">Kelola Pesanan</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-
-    {{-- 5. Kelola CS (Admin Only) --}}
-    @if(auth()->user()->role === 'admin')
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon" style="color: #6f42c1;">
-                    <i class="bi bi-people-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Kelola CS</h5>
-                <p class="card-text text-muted">Manajemen akun Customer Service.</p>
-                <a href="{{ route('admin.cs.index') }}" class="btn btn-sm" style="background-color: #6f42c1; color: white;">Kelola CS</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 6. Admin Dashboard --}}
-    @if(auth()->user()->role === 'admin')
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon text-success">
-                    <i class="bi bi-speedometer2"></i>
-                </div>
-                <h5 class="card-title fw-bold">Admin Dashboard</h5>
-                <p class="card-text text-muted">Dashboard khusus admin dengan analisis lengkap.</p>
-                <a href="{{ route('dashboard') }}" class="btn btn-success btn-sm">Buka Dashboard</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 6. CS Dashboard --}}
-    @if(in_array(auth()->user()->role, ['admin', 'cs']))
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon text-info">
-                    <i class="bi bi-headset"></i>
-                </div>
-                <h5 class="card-title fw-bold">CS Dashboard</h5>
-                <p class="card-text text-muted">Dashboard customer service untuk layanan pelanggan.</p>
-                <a href="{{ route('chat.dashboard') }}" class="btn btn-info btn-sm">Buka Dashboard</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 7. Otomasi Pesan --}}
-    @if(auth()->user()->role === 'admin')
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon text-info">
-                    <i class="bi bi-send-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Otomasi Pesan</h5>
-                <p class="card-text text-muted">Pengaturan otomasi broadcast pesan WhatsApp.</p>
-                <a href="{{ route('broadcast.index') }}" class="btn btn-info btn-sm">Kelola Otomasi</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- 8. Reminder Rules --}}
-    @if(auth()->user()->role === 'admin')
-    <div class="col-md-6 col-lg-3">
-        <div class="module-card card">
-            <div class="card-body text-center">
-                <div class="module-icon text-warning">
-                    <i class="bi bi-bell-fill"></i>
-                </div>
-                <h5 class="card-title fw-bold">Reminder</h5>
-                <p class="card-text text-muted">Aturan reminder otomatis untuk repeat order.</p>
-                <a href="{{ route('reminders.index') }}" class="btn btn-warning btn-sm">Kelola Reminder</a>
-            </div>
-        </div>
-    </div>
-    @endif
-
-
-
-</div>
-
-{{-- Pintasan Cepat (Quick Actions) --}}
-@if(in_array(auth()->user()->role, ['admin', 'cs']))
-<div class="row mt-5">
-    <div class="col-12">
-        <h4 class="mb-3 fw-bold" style="color: #333;">
-            <i class="bi bi-lightning-charge-fill me-2"></i>Pintasan Cepat
-        </h4>
-    </div>
-</div>
-
-<div class="row g-3">
-    {{-- Tambah Pelanggan Baru --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('customers.create') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(132, 153, 79, 0.1);">
-                        <i class="bi bi-person-plus-fill" style="font-size: 1.5rem; color: #84994F;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Tambah Pelanggan</h6>
-                        <small class="text-muted">Daftarkan pelanggan baru</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    {{-- Tambah Produk Baru --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('product.create') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(252, 181, 59, 0.1);">
-                        <i class="bi bi-box-seam" style="font-size: 1.5rem; color: #FCB53B;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Tambah Produk</h6>
-                        <small class="text-muted">Input produk baru</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    {{-- Buat Pesanan Baru --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('orders.create') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(180, 82, 83, 0.1);">
-                        <i class="bi bi-cart-plus-fill" style="font-size: 1.5rem; color: #B45253;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Buat Pesanan</h6>
-                        <small class="text-muted">Order baru</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    @if(auth()->user()->role === 'admin')
-    {{-- Tambah Reminder --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('reminders.create') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(255, 193, 7, 0.1);">
-                        <i class="bi bi-alarm" style="font-size: 1.5rem; color: #ffc107;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Atur Reminder</h6>
-                        <small class="text-muted">Reminder repeat order</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-
-
-    {{-- Tambah Otomasi --}}
-    <div class="col-md-6 col-lg-4">
-        <a href="{{ route('broadcast.create') }}" class="text-decoration-none">
-            <div class="card border-0 shadow-sm h-100 hover-card">
-                <div class="card-body d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: rgba(13, 110, 253, 0.1);">
-                        <i class="bi bi-robot" style="font-size: 1.5rem; color: #0d6efd;"></i>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold">Tambah Otomasi</h6>
-                        <small class="text-muted">Broadcast WhatsApp</small>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-    @endif
-</div>
-@endif
-
-@push('styles')
-<style>
-    .hover-card {
-        transition: all 0.3s ease;
-    }
-    .hover-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15) !important;
-    }
-</style>
-@endpush
-
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Pesanan',
+                        data: chartData,
+                        borderColor: '#84994F',
+                        backgroundColor: 'rgba(132, 153, 79, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4, // Smooth curves
+                        fill: true,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#84994F',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            padding: 10,
+                            titleFont: {
+                                size: 13,
+                                family: "'Plus Jakarta Sans', sans-serif"
+                            },
+                            bodyFont: {
+                                size: 12,
+                                family: "'Plus Jakarta Sans', sans-serif"
+                            },
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y + ' Pesanan';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#f1f5f9',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10,
+                                    family: "'Plus Jakarta Sans', sans-serif"
+                                },
+                                color: '#64748b',
+                                stepSize: 1
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10,
+                                    family: "'Plus Jakarta Sans', sans-serif"
+                                },
+                                color: '#64748b'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    @endpush
 @endsection

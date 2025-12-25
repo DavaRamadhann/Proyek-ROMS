@@ -1,169 +1,161 @@
-@extends('layout.main')
+@extends('layouts.app')
 
 @section('title', 'Jadwal Pengingat (Reminder)')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-        <h2 class="fw-bold text-dark">Manajemen Reminder</h2>
-        <p class="text-muted">Kelola aturan pengingat dan pantau jadwal pengiriman.</p>
-    </div>
-    <a href="{{ route('reminders.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg me-2"></i>Buat Rule Reminder
-    </a>
-</div>
 
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    {{-- HEADER PAGE --}}
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <i data-lucide="bell-ring" class="h-6 w-6 text-[#84994F]"></i> Manajemen Reminder
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">Kelola aturan pengingat dan pantau jadwal pengiriman.</p>
+        </div>
+        
+        <a href="{{ route('reminders.create') }}" class="bg-[#B45253] hover:bg-[#9a4243] text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md shadow-red-100 transition flex items-center gap-2">
+            <i data-lucide="plus" class="h-4 w-4"></i> Buat Rule Reminder
+        </a>
     </div>
-@endif
 
-@if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
+    {{-- ALERT SUKSES --}}
+    @if(session('success'))
+        <div class="mb-4 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 flex items-center gap-2 text-sm font-medium">
+            <i data-lucide="check-circle-2" class="h-4 w-4"></i>
+            {{ session('success') }}
+        </div>
+    @endif
 
-{{-- Section 1: Aturan Reminder --}}
-<div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-    <div class="card-header bg-white py-3">
-        <h5 class="mb-0 fw-bold text-primary"><i class="bi bi-gear-fill me-2"></i>Aturan Reminder Aktif</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+    {{-- TABLE 1: ATURAN REMINDER --}}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden mb-8">
+        <div class="p-4 border-b border-slate-50 flex items-center gap-2 bg-slate-50/50">
+            <i data-lucide="settings" class="h-4 w-4 text-[#FCB53B]"></i>
+            <h3 class="font-bold text-slate-700 text-sm">Aturan Reminder Aktif</h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 text-[11px] uppercase text-slate-500 font-bold tracking-wider">
                     <tr>
-                        <th class="ps-4 py-3">Nama Rule</th>
-                        <th class="py-3">Produk Pemicu</th>
-                        <th class="py-3">Waktu Kirim</th>
-                        <th class="py-3">Status</th>
-                        <th class="pe-4 py-3 text-end">Aksi</th>
+                        <th class="px-6 py-3">Nama Rule</th>
+                        <th class="px-6 py-3">Produk Pemicu</th>
+                        <th class="px-6 py-3">Waktu Kirim</th>
+                        <th class="px-6 py-3 text-center">Status</th>
+                        <th class="px-6 py-3 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-slate-50 text-sm">
                     @forelse($rules as $rule)
-                    <tr>
-                        <td class="ps-4 fw-bold">{{ $rule->name }}</td>
-                        <td>
+                    <tr class="hover:bg-slate-50 transition group">
+                        <td class="px-6 py-4 font-bold text-slate-700">{{ $rule->name }}</td>
+                        <td class="px-6 py-4">
                             @if($rule->product)
-                                <span class="badge bg-info text-dark">{{ $rule->product->name }}</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-600 text-xs font-bold border border-blue-100">
+                                    {{ $rule->product->name }}
+                                </span>
                             @else
-                                <span class="badge bg-secondary">Semua Produk</span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-500 text-xs font-bold border border-slate-200">Semua Produk</span>
                             @endif
                         </td>
-                        <td>
-                            {{ $rule->days_after_delivery }} hari setelah delivered
+                        <td class="px-6 py-4 text-slate-600">
+                            {{ $rule->days_after_delivery }} hari setelah sampai
                         </td>
-                        <td>
+                        <td class="px-6 py-4 text-center">
                             @if($rule->is_active)
-                                <span class="badge bg-success">Aktif</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-[10px] font-bold">Aktif</span>
                             @else
-                                <span class="badge bg-secondary">Non-Aktif</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold">Non-Aktif</span>
                             @endif
                         </td>
-                        <td class="pe-4 text-end">
-                            <a href="{{ route('reminders.edit', $rule->id) }}" class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-pencil"></i>
+                        <td class="px-6 py-4 text-right">
+                            <a href="{{ route('reminders.edit', $rule->id) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-slate-200 hover:border-[#FCB53B] hover:text-[#FCB53B] text-slate-500 rounded-lg transition text-xs font-bold shadow-sm">
+                                <i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit
                             </a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">Belum ada aturan reminder. Silakan buat baru.</td>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-400">Belum ada aturan reminder.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-{{-- Section 2: Log Jadwal --}}
-<div class="card border-0 shadow-sm" style="border-radius: 12px;">
-    <div class="card-header bg-white py-3">
-        <h5 class="mb-0 fw-bold text-secondary"><i class="bi bi-calendar-event me-2"></i>Log Jadwal Pengiriman</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+    {{-- TABLE 2: LOG JADWAL --}}
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">
+        <div class="p-4 border-b border-slate-50 flex items-center gap-2 bg-slate-50/50">
+            <i data-lucide="calendar-clock" class="h-4 w-4 text-slate-400"></i>
+            <h3 class="font-bold text-slate-700 text-sm">Log Jadwal Pengiriman</h3>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-50 text-[11px] uppercase text-slate-500 font-bold tracking-wider">
                     <tr>
-                        <th class="ps-4 py-3">Pelanggan</th>
-                        <th class="py-3">Order Terkait</th>
-                        <th class="py-3">Jadwal Kirim</th>
-                        <th class="py-3">Pesan</th>
-                        <th class="py-3">Status</th>
-                        <th class="pe-4 py-3 text-end">Aksi</th>
+                        <th class="px-6 py-3">Pelanggan</th>
+                        <th class="px-6 py-3">Order Terkait</th>
+                        <th class="px-6 py-3">Jadwal Kirim</th>
+                        <th class="px-6 py-3">Pesan Preview</th>
+                        <th class="px-6 py-3 text-center">Status</th>
+                        <th class="px-6 py-3 text-right">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @forelse($reminders as $reminder)
+                <tbody id="logsTableBody" class="divide-y divide-slate-50 text-sm">
                     <tr>
-                        <td class="ps-4">
-                            <div class="fw-bold text-primary">{{ $reminder->customer->name }}</div>
-                            <small class="text-muted">{{ $reminder->customer->phone }}</small>
-                        </td>
-                        <td>
-                            <a href="{{ route('orders.show', $reminder->order_id) }}" class="text-decoration-none badge bg-light text-dark border">
-                                {{ $reminder->order->order_number }}
-                            </a>
-                        </td>
-                        <td>
-                            <div class="d-flex flex-column">
-                                <span class="fw-semibold {{ $reminder->scheduled_at->isPast() && $reminder->status == 'pending' ? 'text-danger' : '' }}">
-                                    {{ $reminder->scheduled_at->format('d M Y') }}
-                                </span>
-                                <small class="text-muted">{{ $reminder->scheduled_at->format('H:i') }}</small>
+                        <td colspan="6" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <i data-lucide="loader-2" class="h-8 w-8 text-[#FCB53B] animate-spin"></i>
+                                <span class="text-slate-500 font-medium text-sm">Menyinkronkan jadwal terbaru...</span>
                             </div>
                         </td>
-                        <td>
-                            <span class="d-inline-block text-truncate" style="max-width: 200px;" title="{{ $reminder->reminder->message_template }}">
-                                {{ $reminder->reminder->message_template }}
-                            </span>
-                        </td>
-                        <td>
-                            @if($reminder->status == 'sent')
-                                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">Terkirim</span>
-                            @elseif($reminder->status == 'failed')
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill">Gagal</span>
-                            @else
-                                <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill">Menunggu</span>
-                            @endif
-                        </td>
-                        <td class="pe-4 text-end">
-                            @if($reminder->status == 'pending')
-                            <form action="{{ route('reminders.destroy', $reminder->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Batalkan pengingat ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Batalkan">
-                                    <i class="bi bi-x-lg"></i>
-                                </button>
-                            </form>
-                            @else
-                                <span class="text-muted">-</span>
-                            @endif
-                        </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-5">
-                            <img src="https://cdn-icons-png.flaticon.com/512/2921/2921222.png" alt="Empty" style="width: 60px; opacity: 0.5;">
-                            <p class="text-muted mt-3">Belum ada jadwal pengingat.</p>
-                        </td>
-                    </tr>
-                    @endforelse
                 </tbody>
             </table>
         </div>
+
+        {{-- Pagination Container (Filled via AJAX) --}}
+        <div id="paginationContainer"></div>
     </div>
-    @if($reminders->hasPages())
-    <div class="card-footer bg-white border-0 py-3">
-        {{ $reminders->links() }}
-    </div>
-    @endif
-</div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load logs via AJAX
+            fetchLogs();
+        });
+
+        function fetchLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            const pagination = document.getElementById('paginationContainer');
+            
+            fetch("{{ route('reminders.sync') }}")
+                .then(response => response.text())
+                .then(html => {
+                    tbody.innerHTML = html;
+                    if (window.lucide && window.lucide.createIcons && window.lucide.icons) {
+                        window.lucide.createIcons({ icons: window.lucide.icons });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-6 py-8 text-center text-red-500">
+                                <div class="flex flex-col items-center gap-2">
+                                    <i data-lucide="alert-circle" class="h-6 w-6"></i>
+                                    <span>Gagal memuat data. Silakan muat ulang halaman.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    if (window.lucide && window.lucide.createIcons && window.lucide.icons) {
+                        window.lucide.createIcons({ icons: window.lucide.icons });
+                    }
+                });
+        }
+    </script>
+    @endpush
+
 @endsection

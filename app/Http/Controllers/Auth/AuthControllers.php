@@ -71,8 +71,14 @@ class AuthControllers extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $user = Auth::user();
             
-            // Cek apakah email sudah diverifikasi
-            if (!$user->email_verified_at) {
+            // Exception: admin@someah.com dan semua CS tidak perlu verifikasi email
+            $isExceptedUser = (
+                $user->email === 'admin@someah.com' || 
+                $user->role === 'cs'
+            );
+            
+            // Cek apakah email sudah diverifikasi (kecuali admin & CS)
+            if (!$isExceptedUser && !$user->email_verified_at) {
                 Auth::logout(); // Logout user yang belum terverifikasi
                 return back()->withErrors([
                     'email' => 'Email Anda belum terverifikasi. Silakan verifikasi email Anda terlebih dahulu.',

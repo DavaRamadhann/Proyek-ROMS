@@ -17,6 +17,7 @@ class ChatRoom extends Model
 
     protected $fillable = [
         'customer_id',
+        'chat_contact_id',
         'cs_user_id',
         'status', 
     ];
@@ -32,6 +33,11 @@ class ChatRoom extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function chatContact(): BelongsTo
+    {
+        return $this->belongsTo(ChatContact::class);
     }
 
     public function csUser(): BelongsTo

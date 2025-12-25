@@ -10,7 +10,7 @@ class Customer extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;
+    // public $timestamps = false; // Enabled timestamps as table has them
 
     protected $table = 'customers';
 
@@ -22,6 +22,10 @@ class Customer extends Model
         'address', // Added address
         'segment_tag',
         'is_manual_name',
+    ];
+
+    protected $casts = [
+        'is_manual_name' => 'boolean',
     ];
 
     protected $appends = ['segment'];
@@ -98,5 +102,13 @@ class Customer extends Model
     {
         // Kita siapkan juga relasi ke Order
         return $this->hasMany(\App\Domains\Order\Models\Order::class);
+    }
+
+    /**
+     * Relasi ke BroadcastLogs.
+     */
+    public function broadcastLogs(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Broadcast\Models\BroadcastLog::class);
     }
 }
